@@ -298,7 +298,7 @@ function finish(){
   alert("Super! Workout gespeichert \uD83D\uDCAA");
   rGrid();rDay();
 }
-async function sts(e){try{await fetch(S.sheetsUrl,{method:"POST",body:JSON.stringify(e),headers:{"Content-Type":"application/json"}});}catch(e){}}
+async function sts(e){try{await fetch(S.sheetsUrl,{method:"POST",body:JSON.stringify(e),headers:{"Content-Type":"text/plain"},mode:"no-cors"});}catch(e){}}
 
 function delWo(i){if(!confirm("Dieses Workout wirklich l\u00f6schen?"))return;S.workoutHistory.splice(i,1);S.totalWorkouts=Math.max(0,S.totalWorkouts-1);save();rHist();rGrid();}
 function clearAll(){if(!confirm("Wirklich ALLE Workouts l\u00f6schen?"))return;S.workoutHistory=[];S.totalWorkouts=0;save();rHist();rGrid();}
