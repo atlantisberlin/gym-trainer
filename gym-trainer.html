@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gym Trainer</title>
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Gym Trainer">
+<meta name="theme-color" content="#1e1e1c">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--bg:#fff;--bg2:#f4f4f2;--bg3:#ebebea;--bgi:#e6f1fb;--bgs:#eaf3de;--bgw:#faeeda;--bgd:#fcebeb;--t:#1a1a19;--t2:#6b6b68;--t3:#a0a09d;--ti:#0c447c;--ts:#27500a;--tw:#633806;--td:#791f1f;--b:rgba(0,0,0,0.12);--bm:rgba(0,0,0,0.22);--rm:8px;--rl:12px;--f:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+@media(prefers-color-scheme:dark){:root{--bg:#1e1e1c;--bg2:#2a2a28;--bg3:#222220;--bgi:#042c53;--bgs:#173404;--bgw:#412402;--bgd:#501313;--t:#f0efeb;--t2:#a8a8a4;--t3:#6b6b68;--ti:#85b7eb;--ts:#97c459;--tw:#ef9f27;--td:#f09595;--b:rgba(255,255,255,0.1);--bm:rgba(255,255,255,0.2)}}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--f);background:var(--bg3);color:var(--t);min-height:100vh;padding:0 0 3rem}
+.app{max-width:680px;margin:0 auto;padding:0 1rem}
+.header{padding:1.5rem 0 1rem;border-bottom:.5px solid var(--b);margin-bottom:1.25rem}
+.header h1{font-size:22px;font-weight:500}
+.hdate,.hsub{font-size:13px;color:var(--t2);margin-top:3px}
+.tabs{display:flex;gap:8px;margin-bottom:1.25rem;flex-wrap:wrap}
+.tab{padding:6px 16px;border-radius:var(--rm);border:.5px solid var(--bm);background:transparent;font-size:13px;cursor:pointer;color:var(--t2);font-family:var(--f)}
+.tab.active{background:var(--t);color:var(--bg);border-color:var(--t)}
+.section{display:none}.section.active{display:block}
+.week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:1.25rem}
+.wc{aspect-ratio:1;border-radius:var(--rm);background:var(--bg2);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;color:var(--t2);border:.5px solid var(--b);cursor:pointer}
+.wc.done{background:var(--bgs);color:var(--ts)}
+.wc.today{border:1.5px solid var(--t)}
+.day-nav{display:flex;align-items:center;gap:12px;margin-bottom:1.25rem}
+.day-nav button{border:.5px solid var(--bm);background:transparent;border-radius:var(--rm);padding:6px 14px;cursor:pointer;font-size:16px;color:var(--t);font-family:var(--f)}
+.day-nav button:hover{background:var(--bg2)}
+.day-title{font-size:16px;font-weight:500;flex:1}
+.day-date{font-size:12px;color:var(--t3);margin-top:2px}
+.rest{background:var(--bg2);border-radius:var(--rl);padding:2rem;text-align:center;color:var(--t2);font-size:15px;line-height:1.7}
+.ec{background:var(--bg);border:.5px solid var(--b);border-radius:var(--rl);padding:1rem 1.25rem;margin-bottom:10px}
+.eh{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.en{font-size:15px;font-weight:500}
+.el{font-size:12px;color:var(--ti);text-decoration:none;display:flex;align-items:center;gap:3px;margin-top:2px}
+.el:hover{text-decoration:underline}
+.em{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.badge{font-size:11px;padding:2px 8px;border-radius:999px}
+.bm{background:var(--bgi);color:var(--ti)}
+.bbw{background:var(--bgs);color:var(--ts)}
+.be{background:var(--bg2);color:var(--t2)}
+.sr{margin-top:10px;font-size:13px;color:var(--t2)}
+.sr strong{color:var(--t);font-weight:500}
+.wi{display:flex;align-items:center;gap:8px;margin-top:10px}
+.wi label{font-size:13px;color:var(--t2)}
+.wi input{width:90px;padding:5px 8px;border-radius:var(--rm);border:.5px solid var(--bm);background:var(--bg2);color:var(--t);font-size:13px;font-family:var(--f)}
+.bwnote{font-size:12px;color:var(--ts);margin-top:8px;display:flex;align-items:center;gap:4px}
+.cbtn{border:.5px solid var(--bm);background:transparent;border-radius:var(--rm);padding:4px 12px;cursor:pointer;font-size:12px;color:var(--t2);white-space:nowrap;font-family:var(--f)}
+.cbtn.done{background:var(--bgs);color:var(--ts)}
+.fbtn{margin-top:1.25rem;width:100%;padding:12px;border-radius:var(--rm);border:.5px solid var(--bm);background:transparent;font-size:14px;cursor:pointer;color:var(--t);font-family:var(--f)}
+.fbtn:hover{background:var(--bg2)}
+.sgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:1.25rem}
+.sc{background:var(--bg2);border-radius:var(--rm);padding:.875rem}
+.sl{font-size:12px;color:var(--t2);margin-bottom:4px}
+.sv{font-size:22px;font-weight:500}
+.slbl{font-size:12px;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem;margin-top:1.25rem}
+.bc{background:var(--bg);border:.5px solid var(--b);border-radius:var(--rl);padding:1rem 1.25rem;margin-bottom:1rem}
+.br{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.br label{font-size:13px;color:var(--t2);min-width:90px}
+.br input{width:110px;padding:5px 8px;border-radius:var(--rm);border:.5px solid var(--bm);background:var(--bg2);color:var(--t);font-size:13px;font-family:var(--f)}
+.bmi-display{display:flex;align-items:baseline;gap:8px;margin-top:8px}
+.bmi-v{font-size:24px;font-weight:500}
+.bmi-c{font-size:13px;padding:2px 10px;border-radius:999px}
+.abtn{border:.5px solid var(--bm);background:transparent;border-radius:var(--rm);padding:6px 16px;cursor:pointer;font-size:13px;color:var(--t);font-family:var(--f)}
+.abtn:hover{background:var(--bg2)}
+.ch-wrap{position:relative;height:180px;margin-top:8px}
+.wli{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:.5px solid var(--b);font-size:13px}
+.wli:last-child{border-bottom:none}
+.delbtn{background:none;border:none;cursor:pointer;color:var(--t3);font-size:14px;padding:2px 6px;border-radius:var(--rm)}
+.delbtn:hover{background:var(--bgd);color:var(--td)}
+.hi{border:.5px solid var(--b);border-radius:var(--rl);padding:.875rem 1rem;margin-bottom:8px}
+.hih{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.hdate{color:var(--t2);font-size:12px}
+.hday{font-weight:500;font-size:14px;margin-bottom:3px}
+.hex{font-size:12px;color:var(--t2);margin-top:4px;line-height:1.5}
+.dw-btn{border:.5px solid var(--bm);background:transparent;border-radius:var(--rm);padding:3px 10px;cursor:pointer;font-size:12px;color:var(--t2);white-space:nowrap;font-family:var(--f)}
+.dw-btn:hover{background:var(--bgd);color:var(--td)}
+.hctrl{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem}
+.ca-btn{border:.5px solid var(--bm);background:transparent;border-radius:var(--rm);padding:5px 12px;cursor:pointer;font-size:12px;color:var(--t2);font-family:var(--f)}
+.ca-btn:hover{background:var(--bgd);color:var(--td)}
+.lvl-info{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px}
+.lvl-bar-wrap{background:var(--bg2);border-radius:999px;height:6px;overflow:hidden}
+.lvl-bar{height:6px;border-radius:999px;background:var(--t);transition:width .5s ease}
+.sbox{background:var(--bg2);border-radius:var(--rl);padding:1.25rem;margin-top:.5rem}
+.sbox p{font-size:13px;color:var(--t2);line-height:1.6;margin-bottom:1rem}
+.sbox pre{background:var(--bg);border:.5px solid var(--b);border-radius:var(--rm);padding:.75rem;font-family:monospace;font-size:11px;overflow-x:auto;margin-bottom:1rem;white-space:pre-wrap;line-height:1.5}
+.cpbtn{border:.5px solid var(--bm);background:transparent;border-radius:var(--rm);padding:6px 14px;cursor:pointer;font-size:13px;color:var(--t);font-family:var(--f)}
+.cpbtn:hover{background:var(--bg2)}
+.steps-list{font-size:13px;color:var(--t2);line-height:1.8;margin-bottom:1rem}
+.steps-list strong{color:var(--t);font-weight:500}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="header">
+  <h1>&#127947; Gym Trainer</h1>
+  <div class="hdate" id="hdate"></div>
+  <div class="hsub" id="hsub">Woche 1 von 12 &middot; Anf&auml;nger-Programm</div>
+</div>
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('today')">Heute</button>
+  <button class="tab" onclick="switchTab('progress')">Fortschritt</button>
+  <button class="tab" onclick="switchTab('history')">Verlauf</button>
+  <button class="tab" onclick="switchTab('sheets')">Google Sheets</button>
+</div>
+
+<div id="tab-today" class="section active">
+  <div class="week-grid" id="wgrid"></div>
+  <div class="day-nav">
+    <button onclick="changeDay(-1)">&#8249;</button>
+    <div><div class="day-title" id="dtitle"></div><div class="day-date" id="ddlbl"></div></div>
+    <button onclick="changeDay(1)">&#8250;</button>
+  </div>
+  <div id="excon"></div>
+</div>
+
+<div id="tab-progress" class="section">
+  <div class="sgrid">
+    <div class="sc"><div class="sl">Workouts gesamt</div><div class="sv" id="s-wo">0</div></div>
+    <div class="sc"><div class="sl">Aktuelle Woche</div><div class="sv" id="s-wk">1</div></div>
+    <div class="sc"><div class="sl">Level</div><div class="sv" id="s-lv" style="font-size:14px;line-height:1.3;padding-top:4px">Anf&auml;nger</div></div>
+    <div class="sc"><div class="sl">Streak (Tage)</div><div class="sv" id="s-st">0</div></div>
+  </div>
+  <div style="margin-bottom:1.25rem">
+    <div class="lvl-info"><span>Fortschritt zum n&auml;chsten Level</span><span id="lvlpct">0%</span></div>
+    <div class="lvl-bar-wrap"><div class="lvl-bar" id="lvlbar" style="width:0%"></div></div>
+  </div>
+  <div class="slbl">Meine K&ouml;rperdaten</div>
+  <div class="bc">
+    <div class="br"><label>&#128207; Gr&ouml;&szlig;e</label><input type="number" id="inh" placeholder="175" min="100" max="250" step="1"><span style="font-size:12px;color:var(--t2)">cm</span></div>
+    <div class="br"><label>&#9878; Gewicht</label><input type="number" id="inw" placeholder="75.0" min="30" max="300" step="0.1"><span style="font-size:12px;color:var(--t2)">kg</span></div>
+    <div id="bmirow" style="display:none;margin-top:10px;padding-top:10px;border-top:.5px solid var(--b)">
+      <div style="font-size:12px;color:var(--t2);margin-bottom:4px">Body-Mass-Index</div>
+      <div class="bmi-display"><span class="bmi-v" id="bmiv">&mdash;</span><span class="bmi-c" id="bmic"></span></div>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
+      <button class="abtn" onclick="saveBody()">&#128190; Eintragen &amp; speichern</button>
+      <span id="bsaved" style="font-size:12px;color:var(--ts);display:none">&#10003; Gespeichert!</span>
+    </div>
+  </div>
+  <div class="slbl">Gewichtsverlauf</div>
+  <div class="bc">
+    <div id="chartarea"><p style="font-size:13px;color:var(--t2)">Trag dein Gewicht oben ein &ndash; hier erscheint dein Verlauf.</p></div>
+    <div id="wloglist"></div>
+  </div>
+  <div class="slbl" style="margin-top:1.5rem">Programm-&Uuml;bersicht</div>
+  <div style="font-size:13px;color:var(--t2);line-height:1.7">
+    <p><strong style="color:var(--t);font-weight:500">Wochen 1&ndash;4:</strong> Anf&auml;nger &ndash; Maschinen &amp; Grund&uuml;bungen, Technik lernen</p>
+    <p><strong style="color:var(--t);font-weight:500">Wochen 5&ndash;8:</strong> Fortgeschr. Anf&auml;nger &ndash; Freie Gewichte, Volumen steigt</p>
+    <p><strong style="color:var(--t);font-weight:500">Wochen 9&ndash;12:</strong> Intermediate &ndash; Schwere Grund&uuml;bungen, h&ouml;here Intensit&auml;t</p>
+  </div>
+</div>
+
+<div id="tab-history" class="section">
+  <div id="hctrlwrap"></div>
+  <div id="hcon"></div>
+</div>
+
+<div id="tab-sheets" class="section">
+  <div class="slbl" style="margin-top:0">So funktioniert die Google Sheets Verbindung</div>
+  <div class="steps-list">
+    <p><strong>Schritt 1</strong> &ndash; &Ouml;ffne <a href="https://sheets.google.com" target="_blank" style="color:var(--ti)">sheets.google.com</a> und erstelle eine neue leere Tabelle.</p>
+    <p><strong>Schritt 2</strong> &ndash; Klick oben auf <em>Erweiterungen &rarr; Apps Script</em>.</p>
+    <p><strong>Schritt 3</strong> &ndash; L&ouml;sch den vorhandenen Code, f&uuml;ge das Script unten ein und speichere (Strg+S).</p>
+    <p><strong>Schritt 4</strong> &ndash; Klick auf <em>Deployen &rarr; Neue Deployment</em>. Typ: &ldquo;Web-App&rdquo;. Zugriff: &ldquo;Jeder&rdquo;. Dann deployen und die URL kopieren.</p>
+    <p><strong>Schritt 5</strong> &ndash; F&uuml;ge die URL unten ein und speichere. Ab jetzt wird jedes Workout automatisch eingetragen.</p>
+  </div>
+  <div class="sbox">
+    <pre id="scode">function doPost(e) {
+  try {
+    var data = JSON.parse(e.postData.contents);
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("Trainings")
+                || ss.insertSheet("Trainings");
+    if (sheet.getLastRow() === 0) {
+      sheet.appendRow(["Datum","Tag","Uebung",
+        "Sets","Reps","Gewicht (kg)","Woche"]);
+    }
+    data.exercises.forEach(function(ex) {
+      sheet.appendRow([data.date, data.day,
+        ex.name, ex.sets, ex.reps,
+        ex.weight || "Bodyweight", data.week]);
+    });
+    return ContentService.createTextOutput(
+      JSON.stringify({status:"ok"}))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch(err) {
+    return ContentService.createTextOutput(
+      JSON.stringify({status:"error",msg:err.message}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}</pre>
+    <button class="cpbtn" onclick="copySc()">&#128203; Script kopieren</button>
+  </div>
+  <div style="margin-top:1rem">
+    <label style="font-size:13px;color:var(--t2)">Deine Web-App URL:</label>
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <input type="text" id="surl" placeholder="https://script.google.com/macros/s/..." style="flex:1;padding:6px 10px;border-radius:var(--rm);border:.5px solid var(--bm);background:var(--bg2);color:var(--t);font-size:13px;font-family:var(--f)">
+      <button class="cpbtn" onclick="saveUrl()">&#10003; Speichern</button>
+    </div>
+    <p id="urlsaved" style="font-size:12px;color:var(--ts);margin-top:4px;display:none">&#10003; URL gespeichert!</p>
+  </div>
+</div>
+</div>
+
+<script>
+const BW=new Set(["plank","push-up","crunch","sit-up","mountain-climber","leg-raise","reverse-crunch","bicycle-crunch","russian-twist","hyperextension","dead-hang","l-sit","kneeling-push-up","incline-push-up","decline-push-up","wide-grip-push-up","close-grip-push-up","diamond-push-up","pike-push-up","bodyweight-glute-bridge","single-leg-bodyweight-glute-bridge","donkey-kick","reverse-plank","hanging-knee-raise","captains-chair-knee-raise","lunge","bodyweight-pistol-squat","nordic-curl","glute-ham-raise-sit-up","wheel-rollout","standing-wheel-rollout"]);
+const DS=["Mo","Di","Mi","Do","Fr","Sa","So"];
+const PR={
+beginner:{label:"Anf\u00e4nger",schedule:[
+{day:"Mo",name:"Push \u2013 Brust & Schultern",type:"push",exercises:[{name:"Seated Chest Press Machine",muscle:"Brust",sets:3,reps:"10\u201312",equip:"Maschine",link:"seated-chest-press-machine"},{name:"Shoulder Press Machine",muscle:"Schultern",sets:3,reps:"10\u201312",equip:"Maschine",link:"shoulder-press-machine"},{name:"Pec Deck Machine",muscle:"Brust",sets:3,reps:"12\u201315",equip:"Maschine",link:"pec-deck-machine"},{name:"Lateral Raise Machine",muscle:"Schultern",sets:3,reps:"12\u201315",equip:"Maschine",link:"lateral-raise-machine"},{name:"Machine Tricep Extension",muscle:"Trizeps",sets:3,reps:"12\u201315",equip:"Maschine",link:"machine-tricep-extension"}]},
+{day:"Di",name:"Pull \u2013 R\u00fccken & Bizeps",type:"pull",exercises:[{name:"Pulldown",muscle:"Lats",sets:3,reps:"10\u201312",equip:"Kabel",link:"pulldown"},{name:"Seated Row Machine",muscle:"R\u00fccken",sets:3,reps:"10\u201312",equip:"Maschine",link:"seated-row-machine"},{name:"Iso Lateral High Row",muscle:"R\u00fccken",sets:3,reps:"10\u201312",equip:"Maschine",link:"iso-lateral-high-row"},{name:"Preacher Curl Machine",muscle:"Bizeps",sets:3,reps:"12\u201315",equip:"Maschine",link:"preacher-curl-machine"},{name:"Face Pull",muscle:"Schultern",sets:3,reps:"15\u201320",equip:"Kabel",link:"face-pull"}]},
+{day:"Mi",name:"Legs \u2013 Beine & Ges\u00e4\u00df",type:"legs",exercises:[{name:"Leg Press",muscle:"Quadrizeps",sets:3,reps:"10\u201312",equip:"Maschine",link:"leg-press"},{name:"Leg Extension",muscle:"Quadrizeps",sets:3,reps:"12\u201315",equip:"Maschine",link:"leg-extension"},{name:"Leg Curl",muscle:"Oberschenkel",sets:3,reps:"12\u201315",equip:"Maschine",link:"leg-curl"},{name:"Hip Abductor",muscle:"Ges\u00e4\u00df",sets:3,reps:"15\u201320",equip:"Maschine",link:"hip-abductor"},{name:"Calf Raises",muscle:"Waden",sets:4,reps:"15\u201320",equip:"Maschine",link:"calf-raises"}]},
+{day:"Do",name:"Ruhetag",type:"rest",exercises:[]},
+{day:"Fr",name:"Push & Core",type:"push2",exercises:[{name:"Dumbbell Press",muscle:"Brust",sets:3,reps:"10\u201312",equip:"Hanteln",link:"dumbbell-press"},{name:"Dumbbell Shoulder Press",muscle:"Schultern",sets:3,reps:"10\u201312",equip:"Hanteln",link:"dumbbell-shoulder-press"},{name:"Cable Crossover",muscle:"Brust",sets:3,reps:"12\u201315",equip:"Kabel",link:"cable-crossover"},{name:"Rope Pushdown",muscle:"Trizeps",sets:3,reps:"12\u201315",equip:"Kabel",link:"rope-pushdown"},{name:"Plank",muscle:"Core",sets:3,reps:"30 Sek",equip:"Bodyweight",link:"plank"}]},
+{day:"Sa",name:"Pull & Core",type:"pull2",exercises:[{name:"Dumbbell Row",muscle:"R\u00fccken",sets:3,reps:"10\u201312",equip:"Hantel",link:"dumbbell-row"},{name:"Cable Row",muscle:"R\u00fccken/Lats",sets:3,reps:"10\u201312",equip:"Kabel",link:"cable-row"},{name:"Dumbbell Bicep Curl",muscle:"Bizeps",sets:3,reps:"12\u201315",equip:"Hanteln",link:"dumbbell-bicep-curl"},{name:"Cable Rear Delt Fly",muscle:"Schultern",sets:3,reps:"15\u201320",equip:"Kabel",link:"cable-rear-delt-fly"},{name:"Crunch",muscle:"Core",sets:3,reps:"15\u201320",equip:"Bodyweight",link:"crunch"}]},
+{day:"So",name:"Ruhetag",type:"rest",exercises:[]}]},
+intermediate_beginner:{label:"Fortgeschr. Anf\u00e4nger",schedule:[
+{day:"Mo",name:"Push \u2013 Brust Fokus",type:"push",exercises:[{name:"Barbell Bench Press",muscle:"Brust",sets:4,reps:"8\u201310",equip:"Langhantel",link:"barbell-bench-press"},{name:"Incline Dumbbell Press",muscle:"Brust",sets:3,reps:"10\u201312",equip:"Hanteln",link:"incline-dumbbell-press"},{name:"Dumbbell Lateral Raise",muscle:"Schultern",sets:4,reps:"12\u201315",equip:"Hanteln",link:"dumbbell-lateral-raise"},{name:"Dips",muscle:"Brust/Trizeps",sets:3,reps:"8\u201312",equip:"Dip bars",link:"dips"},{name:"Bar Pushdown",muscle:"Trizeps",sets:3,reps:"12\u201315",equip:"Kabel",link:"bar-pushdown"}]},
+{day:"Di",name:"Pull \u2013 R\u00fccken Fokus",type:"pull",exercises:[{name:"Barbell Row",muscle:"R\u00fccken",sets:4,reps:"8\u201310",equip:"Langhantel",link:"barbell-row"},{name:"Chin Up",muscle:"Lats/Bizeps",sets:3,reps:"6\u201310",equip:"Stange",link:"chin-up"},{name:"Cable Row",muscle:"R\u00fccken",sets:3,reps:"10\u201312",equip:"Kabel",link:"cable-row"},{name:"Barbell Bicep Curl",muscle:"Bizeps",sets:3,reps:"10\u201312",equip:"Langhantel",link:"barbell-bicep-curl"},{name:"Face Pull",muscle:"Schultern",sets:3,reps:"15\u201320",equip:"Kabel",link:"face-pull"}]},
+{day:"Mi",name:"Legs \u2013 Squat Fokus",type:"legs",exercises:[{name:"Barbell Back Squat",muscle:"Quadrizeps",sets:4,reps:"8\u201310",equip:"Langhantel",link:"barbell-back-squat"},{name:"Dumbbell RDL",muscle:"Oberschenkel",sets:3,reps:"10\u201312",equip:"Hanteln",link:"dumbbell-rdl"},{name:"Leg Extension",muscle:"Quadrizeps",sets:3,reps:"12\u201315",equip:"Maschine",link:"leg-extension"},{name:"Leg Curl",muscle:"Oberschenkel",sets:3,reps:"12\u201315",equip:"Maschine",link:"leg-curl"},{name:"Standing Dumbbell Calf Raise",muscle:"Waden",sets:4,reps:"15\u201320",equip:"Hantel",link:"standing-dumbbell-calf-raise"}]},
+{day:"Do",name:"Ruhetag",type:"rest",exercises:[]},
+{day:"Fr",name:"Push \u2013 Schulter Fokus",type:"push2",exercises:[{name:"Military Press",muscle:"Schultern",sets:4,reps:"8\u201310",equip:"Langhantel",link:"military-press"},{name:"Incline Bench Press",muscle:"Brust",sets:3,reps:"10\u201312",equip:"Langhantel",link:"incline-bench-press"},{name:"Cable Lateral Raise",muscle:"Schultern",sets:4,reps:"12\u201315",equip:"Kabel",link:"cable-lateral-raise"},{name:"Close Grip Bench Press",muscle:"Trizeps",sets:3,reps:"8\u201312",equip:"Langhantel",link:"close-grip-bench-press"},{name:"Hanging Knee Raise",muscle:"Core",sets:3,reps:"15",equip:"Stange",link:"hanging-knee-raise"}]},
+{day:"Sa",name:"Pull & Legs",type:"pull2",exercises:[{name:"Deadlift",muscle:"R\u00fccken/Beine",sets:3,reps:"6\u20138",equip:"Langhantel",link:"deadlift"},{name:"Pull-Up",muscle:"Lats",sets:3,reps:"5\u201310",equip:"Stange",link:"pull-up"},{name:"Hammer Curl",muscle:"Bizeps",sets:3,reps:"12\u201315",equip:"Hanteln",link:"hammer-curl"},{name:"Hip Thrust",muscle:"Ges\u00e4\u00df",sets:3,reps:"12\u201315",equip:"Langhantel",link:"hip-thrust"},{name:"Crunch",muscle:"Core",sets:3,reps:"20",equip:"Bodyweight",link:"crunch"}]},
+{day:"So",name:"Ruhetag",type:"rest",exercises:[]}]},
+intermediate:{label:"Intermediate",schedule:[
+{day:"Mo",name:"Push Heavy",type:"push",exercises:[{name:"Barbell Bench Press",muscle:"Brust",sets:5,reps:"5\u20136",equip:"Langhantel",link:"barbell-bench-press"},{name:"Incline Bench Press",muscle:"Brust",sets:4,reps:"8\u201310",equip:"Langhantel",link:"incline-bench-press"},{name:"Military Press",muscle:"Schultern",sets:4,reps:"6\u20138",equip:"Langhantel",link:"military-press"},{name:"Weighted Dips",muscle:"Trizeps/Brust",sets:3,reps:"8\u201310",equip:"Gewichtsscheibe",link:"weighted-dips"},{name:"EZ Bar Skullcrusher",muscle:"Trizeps",sets:3,reps:"10\u201312",equip:"EZ-Bar",link:"ez-bar-skullcrusher"}]},
+{day:"Di",name:"Pull Heavy",type:"pull",exercises:[{name:"Deadlift",muscle:"R\u00fccken/Beine",sets:4,reps:"4\u20135",equip:"Langhantel",link:"deadlift"},{name:"Barbell Row",muscle:"R\u00fccken",sets:4,reps:"6\u20138",equip:"Langhantel",link:"barbell-row"},{name:"Weighted Pull Up",muscle:"Lats",sets:3,reps:"6\u20138",equip:"Zusatzgewicht",link:"weighted-pull-up"},{name:"EZ Bar Curl",muscle:"Bizeps",sets:4,reps:"8\u201310",equip:"EZ-Bar",link:"ez-bar-curl"},{name:"Cable Rear Delt Fly",muscle:"Schultern",sets:3,reps:"15",equip:"Kabel",link:"cable-rear-delt-fly"}]},
+{day:"Mi",name:"Legs Heavy",type:"legs",exercises:[{name:"Barbell Back Squat",muscle:"Quadrizeps",sets:5,reps:"5",equip:"Langhantel",link:"barbell-back-squat"},{name:"Barbell RDL",muscle:"Oberschenkel",sets:4,reps:"6\u20138",equip:"Langhantel",link:"barbell-rdl"},{name:"Bulgarian Split Squat",muscle:"Quadrizeps",sets:3,reps:"10",equip:"Hanteln",link:"bulgarian-split-squat"},{name:"Leg Curl",muscle:"Oberschenkel",sets:3,reps:"10\u201312",equip:"Maschine",link:"leg-curl"},{name:"Calf Raises",muscle:"Waden",sets:5,reps:"15",equip:"Maschine",link:"calf-raises"}]},
+{day:"Do",name:"Ruhetag",type:"rest",exercises:[]},
+{day:"Fr",name:"Push Volume",type:"push2",exercises:[{name:"Dumbbell Press",muscle:"Brust",sets:4,reps:"10\u201312",equip:"Hanteln",link:"dumbbell-press"},{name:"Arnold Press",muscle:"Schultern",sets:4,reps:"10\u201312",equip:"Hantel",link:"arnold-press"},{name:"Cable Fly High to Low",muscle:"Brust",sets:4,reps:"12\u201315",equip:"Kabel",link:"cable-fly-high-to-low"},{name:"Rope Overhead Extension",muscle:"Trizeps",sets:4,reps:"12\u201315",equip:"Kabel",link:"rope-overhead-extension"},{name:"Plank",muscle:"Core",sets:4,reps:"45 Sek",equip:"Bodyweight",link:"plank"}]},
+{day:"Sa",name:"Pull Volume",type:"pull2",exercises:[{name:"T-Bar Row",muscle:"R\u00fccken",sets:4,reps:"8\u201310",equip:"T-Bar Maschine",link:"t-bar-row"},{name:"Wide Grip Pull Up",muscle:"Lats",sets:3,reps:"8\u201310",equip:"Stange",link:"wide-grip-pull-up"},{name:"Incline Dumbbell Curl",muscle:"Bizeps",sets:3,reps:"10\u201312",equip:"Hanteln",link:"incline-dumbbell-curl"},{name:"Hip Thrust",muscle:"Ges\u00e4\u00df",sets:4,reps:"10\u201312",equip:"Langhantel",link:"hip-thrust"},{name:"Hanging Knee Raise",muscle:"Core",sets:4,reps:"15\u201320",equip:"Stange",link:"hanging-knee-raise"}]},
+{day:"So",name:"Ruhetag",type:"rest",exercises:[]}]}
+};
+
+let S={currentDayIndex:0,weights:{},completed:{},workoutHistory:[],totalWorkouts:0,sheetsUrl:"",bodyHeight:"",bodyWeight:"",weightLog:[]};
+try{const s=localStorage.getItem("gymtrainer_v3");if(s)S={...S,...JSON.parse(s)};}catch(e){}
+const today=new Date();
+S.currentDayIndex=today.getDay()===0?6:today.getDay()-1;
+function save(){try{localStorage.setItem("gymtrainer_v3",JSON.stringify(S));}catch(e){}}
+function fd(d){return d.toLocaleDateString("de-DE",{weekday:"long",day:"2-digit",month:"long",year:"numeric"});}
+function fs(d){return d.toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric"});}
+function gdd(i){const d=new Date(),ti=d.getDay()===0?6:d.getDay()-1,nd=new Date(d);nd.setDate(d.getDate()+(i-ti));return nd;}
+function gp(){const w=gw();if(w<=4)return PR.beginner;if(w<=8)return PR.intermediate_beginner;return PR.intermediate;}
+function gw(){return Math.min(12,Math.floor(S.totalWorkouts/6)+1);}
+function ibw(l){return BW.has(l);}
+function itw(ds){const p=ds.split(".");if(p.length!==3)return false;const d=new Date(p[2],p[1]-1,p[0]),n=new Date(),s=new Date(n);s.setDate(n.getDate()-(n.getDay()||7)+1);s.setHours(0,0,0,0);return d>=s;}
+
+document.getElementById("hdate").textContent=fd(today);
+document.getElementById("hsub").textContent="Woche "+gw()+" von 12 \u00b7 "+gp().label+"-Programm";
+
+function switchTab(t){
+  document.querySelectorAll(".tab").forEach((tb,i)=>tb.classList.toggle("active",["today","progress","history","sheets"][i]===t));
+  document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
+  document.getElementById("tab-"+t).classList.add("active");
+  if(t==="progress")rProg();
+  if(t==="history")rHist();
+  if(t==="sheets"){const u=document.getElementById("surl");if(u&&S.sheetsUrl)u.value=S.sheetsUrl;}
+}
+function changeDay(d){S.currentDayIndex=(S.currentDayIndex+d+7)%7;save();rDay();
+if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js");}}
+
+function rGrid(){
+  const g=document.getElementById("wgrid"),ti=today.getDay()===0?6:today.getDay()-1;
+  g.innerHTML=DS.map((d,i)=>{
+    const dn=S.workoutHistory.some(h=>h.dayIndex===i&&itw(h.date)),it=i===ti,ic=i===S.currentDayIndex;
+    return '<div class="wc '+(dn?"done ":"")+(it?"today":"")+'" onclick="S.currentDayIndex='+i+';save();rDay()" title="'+DS[i]+'"><div style="font-size:9px;margin-bottom:2px">'+d+'</div><span style="font-size:14px'+(ic?';font-weight:700':"")+'">'+( dn?"✓":"○")+'</span></div>';
+  }).join("");
+}
+
+function rDay(){
+  const pr=gp(),dd=pr.schedule[S.currentDayIndex],dt=gdd(S.currentDayIndex);
+  document.getElementById("dtitle").textContent=dd.day+" \u2013 "+dd.name;
+  document.getElementById("ddlbl").textContent=fd(dt);
+  document.getElementById("hsub").textContent="Woche "+gw()+" von 12 \u00b7 "+pr.label+"-Programm";
+  rGrid();
+  const c=document.getElementById("excon");
+  if(dd.type==="rest"){c.innerHTML='<div class="rest"><div style="font-size:32px;margin-bottom:8px">\uD83C\uDF19</div>Heute ist Ruhetag.<br>Erhol dich gut \u2013 Muskeln wachsen in der Pause!</div>';return;}
+  const key=S.currentDayIndex+"_"+gw();
+  c.innerHTML=dd.exercises.map((ex,i)=>{
+    const wk=key+"_"+i,w=S.weights[wk]||"",dn=S.completed[wk]||false,bw=ibw(ex.link);
+    const ws=bw?'<div class="bwnote">\uD83C\uDFC3 K\u00f6rpergewichts\u00fcbung \u2013 kein Gewicht n\u00f6tig</div>'
+      :'<div class="wi"><label>\u2696\uFE0F Gewicht:</label><input type="number" id="w-'+i+'" value="'+w+'" placeholder="z.B. 20" onchange="sw('+i+',this.value)" min="0" step="2.5"><span style="font-size:12px;color:var(--t2)">kg</span></div>';
+    return '<div class="ec"><div class="eh"><div><div class="en">'+ex.name+'</div><a class="el" href="https://www.strongermobileapp.com/exercises/'+ex.link+'" target="_blank">\u2197 Anleitung</a></div><button class="cbtn'+(dn?" done":"")+'" onclick="td('+i+')" id="db-'+i+'">'+(dn?"✓ Fertig":"Abhaken")+'</button></div><div class="em"><span class="badge bm">'+ex.muscle+'</span>'+(bw?'<span class="badge bbw">Bodyweight</span>':'<span class="badge be">'+ex.equip+'</span>')+'</div><div class="sr"><strong>'+ex.sets+' Sets</strong> \u00d7 <strong>'+ex.reps+' Wdh.</strong></div>'+ws+'</div>';
+  }).join("")+'<button class="fbtn" onclick="finish()">\uD83C\uDFC6 Workout abschlie\u00dfen &amp; speichern</button>';
+}
+
+function td(i){const k=S.currentDayIndex+"_"+gw()+"_"+i;S.completed[k]=!S.completed[k];save();const b=document.getElementById("db-"+i);b.className="cbtn"+(S.completed[k]?" done":"");b.textContent=S.completed[k]?"✓ Fertig":"Abhaken";}
+function sw(i,v){S.weights[S.currentDayIndex+"_"+gw()+"_"+i]=v;save();}
+
+function finish(){
+  const pr=gp(),dd=pr.schedule[S.currentDayIndex];
+  if(dd.type==="rest")return;
+  const w=gw(),key=S.currentDayIndex+"_"+w,dt=gdd(S.currentDayIndex);
+  const exs=dd.exercises.map((ex,i)=>({name:ex.name,sets:ex.sets,reps:ex.reps,weight:ibw(ex.link)?"Bodyweight":(S.weights[key+"_"+i]||null)}));
+  S.workoutHistory.unshift({date:fs(dt),day:dd.name,dayIndex:S.currentDayIndex,week:w,exercises:exs});
+  S.totalWorkouts++;save();
+  if(S.sheetsUrl)sts(S.workoutHistory[0]);
+  alert("Super! Workout gespeichert \uD83D\uDCAA");
+  rGrid();rDay();
+if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js");}
+}
+async function sts(e){try{await fetch(S.sheetsUrl,{method:"POST",body:JSON.stringify(e),headers:{"Content-Type":"text/plain"},mode:"no-cors"});}catch(e){}}
+
+function delWo(i){if(!confirm("Dieses Workout wirklich l\u00f6schen?"))return;S.workoutHistory.splice(i,1);S.totalWorkouts=Math.max(0,S.totalWorkouts-1);save();rHist();rGrid();}
+function clearAll(){if(!confirm("Wirklich ALLE Workouts l\u00f6schen?"))return;S.workoutHistory=[];S.totalWorkouts=0;save();rHist();rGrid();}
+
+function rHist(){
+  const wrap=document.getElementById("hctrlwrap"),c=document.getElementById("hcon");
+  if(!S.workoutHistory.length){wrap.innerHTML="";c.innerHTML='<p style="font-size:13px;color:var(--t2)">Noch kein Training abgeschlossen.</p>';return;}
+  wrap.innerHTML='<div class="hctrl"><div style="font-size:13px;color:var(--t2)">'+S.workoutHistory.length+' Workout'+(S.workoutHistory.length!==1?"s":"")+" gesamt</div>"+'<button class="ca-btn" onclick="clearAll()">\uD83D\uDDD1 Alle l\u00f6schen</button></div>';
+  c.innerHTML=S.workoutHistory.map((h,i)=>'<div class="hi"><div class="hih"><div><div class="hdate">'+h.date+' \u00b7 Woche '+h.week+'</div><div class="hday">'+h.day+'</div></div><button class="dw-btn" onclick="delWo('+i+')">\uD83D\uDDD1 L\u00f6schen</button></div><div class="hex">'+h.exercises.map(e=>e.name+(e.weight&&e.weight!=="Bodyweight"?" ("+e.weight+"kg)":"")).join(" \u00b7 ")+'</div></div>').join("");
+}
+
+function saveBody(){
+  const h=document.getElementById("inh").value,w=document.getElementById("inw").value;
+  if(!h||!w)return;
+  S.bodyHeight=h;S.bodyWeight=w;
+  const ts=fs(new Date()),ex=S.weightLog.findIndex(x=>x.date===ts);
+  if(ex>=0)S.weightLog[ex].weight=parseFloat(w);else S.weightLog.unshift({date:ts,weight:parseFloat(w)});
+  S.weightLog=S.weightLog.slice(0,30);save();
+  uBMI(h,w);
+  const sv=document.getElementById("bsaved");sv.style.display="inline";setTimeout(()=>sv.style.display="none",2000);
+  rChart();rWLog();
+}
+
+function uBMI(h,w){
+  const hm=parseFloat(h)/100,bmi=parseFloat(w)/(hm*hm);
+  document.getElementById("bmiv").textContent=bmi.toFixed(1);
+  let cat="",bg="var(--bg2)",col="var(--t2)";
+  if(bmi<18.5){cat="Untergewicht";bg="var(--bgi)";col="var(--ti)";}
+  else if(bmi<25){cat="Normalgewicht";bg="var(--bgs)";col="var(--ts)";}
+  else if(bmi<30){cat="\u00dcbergewicht";bg="var(--bgw)";col="var(--tw)";}
+  else{cat="Adipositas";bg="var(--bgd)";col="var(--td)";}
+  const ce=document.getElementById("bmic");ce.textContent=cat;ce.style.background=bg;ce.style.color=col;
+  document.getElementById("bmirow").style.display="block";
+}
+
+let CI=null;
+function rChart(){
+  if(S.weightLog.length<2){document.getElementById("chartarea").innerHTML='<p style="font-size:13px;color:var(--t2)">Trag dein Gewicht mindestens 2x ein, um den Verlauf zu sehen.</p>';return;}
+  const sorted=[...S.weightLog].reverse(),labels=sorted.map(x=>x.date),data=sorted.map(x=>x.weight);
+  document.getElementById("chartarea").innerHTML='<div style="font-size:13px;font-weight:500;margin-bottom:4px">K\u00f6rpergewicht-Verlauf</div><div class="ch-wrap"><canvas id="wch"></canvas></div>';
+  if(CI){CI.destroy();CI=null;}
+  const ctx=document.getElementById("wch").getContext("2d");
+  const isDark=window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const tc=isDark?"#a8a8a4":"#6b6b68",gc=isDark?"rgba(255,255,255,0.08)":"rgba(0,0,0,0.08)";
+  CI=new Chart(ctx,{type:"line",data:{labels,datasets:[{data,borderColor:"#378ADD",backgroundColor:"rgba(55,138,221,0.08)",borderWidth:2,pointRadius:4,pointBackgroundColor:"#378ADD",tension:0.3,fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y.toFixed(1)+" kg"}}},scales:{x:{ticks:{color:tc,font:{size:11}},grid:{color:gc}},y:{ticks:{color:tc,font:{size:11},callback:v=>v+" kg"},grid:{color:gc}}}}});
+}
+
+function rWLog(){
+  const l=document.getElementById("wloglist");
+  if(!S.weightLog.length){l.innerHTML="";return;}
+  l.innerHTML=S.weightLog.slice(0,8).map((x,i)=>'<div class="wli"><span style="color:var(--t2)">'+x.date+'</span><span style="display:flex;align-items:center;gap:8px"><span style="font-weight:500">'+x.weight.toFixed(1)+' kg</span><button class="delbtn" onclick="dlw('+i+')" title="L\u00f6schen">\u2715</button></span></div>').join("");
+}
+function dlw(i){S.weightLog.splice(i,1);save();rChart();rWLog();}
+
+function rProg(){
+  const w=gw();
+  document.getElementById("s-wo").textContent=S.totalWorkouts;
+  document.getElementById("s-wk").textContent=w;
+  document.getElementById("s-lv").textContent=gp().label;
+  document.getElementById("s-st").textContent=cStreak();
+  const pct=Math.round((S.totalWorkouts%24)/24*100);
+  document.getElementById("lvlpct").textContent=pct+"%";
+  document.getElementById("lvlbar").style.width=pct+"%";
+  if(S.bodyHeight)document.getElementById("inh").value=S.bodyHeight;
+  if(S.bodyWeight)document.getElementById("inw").value=S.bodyWeight;
+  if(S.weightLog.length>0){rChart();rWLog();}
+  if(S.bodyHeight&&S.bodyWeight)uBMI(S.bodyHeight,S.bodyWeight);
+}
+
+function cStreak(){
+  if(!S.workoutHistory.length)return 0;
+  const tm=s=>{const p=s.split(".");return new Date(p[2],p[1]-1,p[0]).getTime();};
+  let n=1,prev=tm(S.workoutHistory[0].date);
+  for(let i=1;i<S.workoutHistory.length;i++){const d=tm(S.workoutHistory[i].date);if((prev-d)/86400000<=2){n++;prev=d;}else break;}
+  return n;
+}
+
+function copySc(){navigator.clipboard.writeText(document.getElementById("scode").textContent).then(()=>alert("Script kopiert!")).catch(()=>alert("Bitte manuell kopieren."));}
+function saveUrl(){S.sheetsUrl=document.getElementById("surl").value.trim();save();const e=document.getElementById("urlsaved");e.style.display="block";setTimeout(()=>e.style.display="none",2000);}
+
+rDay();
+if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js");}
+</script>
+</body>
+</html>
