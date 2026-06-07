@@ -3,7 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gym Trainer App</title>
+<title>Gym Trainer</title>
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Gym Trainer">
+<meta name="theme-color" content="#1e1e1c">
+<link rel="apple-touch-icon" href="icon.svg">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
@@ -257,7 +263,8 @@ function switchTab(t){
   if(t==="history")rHist();
   if(t==="sheets"){const u=document.getElementById("surl");if(u&&S.sheetsUrl)u.value=S.sheetsUrl;}
 }
-function changeDay(d){S.currentDayIndex=(S.currentDayIndex+d+7)%7;save();rDay();}
+function changeDay(d){S.currentDayIndex=(S.currentDayIndex+d+7)%7;save();rDay();
+if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js");}}
 
 function rGrid(){
   const g=document.getElementById("wgrid"),ti=today.getDay()===0?6:today.getDay()-1;
@@ -297,6 +304,7 @@ function finish(){
   if(S.sheetsUrl)sts(S.workoutHistory[0]);
   alert("Super! Workout gespeichert \uD83D\uDCAA");
   rGrid();rDay();
+if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js");}
 }
 async function sts(e){try{await fetch(S.sheetsUrl,{method:"POST",body:JSON.stringify(e),headers:{"Content-Type":"text/plain"},mode:"no-cors"});}catch(e){}}
 
@@ -380,6 +388,7 @@ function copySc(){navigator.clipboard.writeText(document.getElementById("scode")
 function saveUrl(){S.sheetsUrl=document.getElementById("surl").value.trim();save();const e=document.getElementById("urlsaved");e.style.display="block";setTimeout(()=>e.style.display="none",2000);}
 
 rDay();
+if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js");}
 </script>
 </body>
 </html>
