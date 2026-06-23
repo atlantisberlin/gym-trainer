@@ -1,4 +1,4 @@
-// Zeile 1 in sw.js:
+// Service Worker – Gym Trainer PWA
 const CACHE = "gym-trainer-v2";  // war: v1
 const ASSETS = [
   "/gym-trainer/",
