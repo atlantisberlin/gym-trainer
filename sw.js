@@ -1,4 +1,5 @@
-const CACHE = "gym-trainer-v1";
+// Zeile 1 in sw.js:
+const CACHE = "gym-trainer-v2";  // war: v1
 const ASSETS = [
   "/gym-trainer/",
   "/gym-trainer/index.html",
