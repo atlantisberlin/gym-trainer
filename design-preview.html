@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gym Trainer – Design Preview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,900;1,700&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --ground:       #141618;
+      --surface:      #1D2023;
+      --surface-2:    #252A2E;
+      --border:       #2C3035;
+      --text:         #EDEDED;
+      --text-muted:   #737880;
+      --text-dim:     #3A3F45;
+      --accent:       #E8A020;
+      --accent-dim:   rgba(232, 160, 32, 0.10);
+      --accent-glow:  rgba(232, 160, 32, 0.22);
+      --done:         #4A8C6F;
+      --done-dim:     rgba(74, 140, 111, 0.18);
+    }
+
+    html, body {
+      height: 100%;
+    }
+
+    body {
+      background: var(--ground);
+      color: var(--text);
+      font-family: 'IBM Plex Mono', monospace;
+      font-weight: 400;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Phone frame wrapper */
+    .frame {
+      max-width: 390px;
+      min-height: 100vh;
+      margin: 0 auto;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Grid texture */
+    #grid-texture {
+      position: fixed;
+      top: 0; left: 50%; transform: translateX(-50%);
+      width: 390px;
+      height: 100vh;
+      pointer-events: none;
+      opacity: 0.035;
+      z-index: 0;
+    }
+
+    .app {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      padding-bottom: 80px;
+    }
+
+    /* ── TOP BAR ─────────────────────────────────────── */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 22px 24px 10px;
+    }
+
+    .session-live {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .live-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--done);
+      flex-shrink: 0;
+      box-shadow: 0 0 0 0 rgba(74, 140, 111, 0.5);
+      animation: livepulse 2.4s ease-in-out infinite;
+    }
+
+    @keyframes livepulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(74, 140, 111, 0.5); }
+      50%       { box-shadow: 0 0 0 5px rgba(74, 140, 111, 0); }
+    }
+
+    .session-info {
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .session-time {
+      color: var(--accent);
+      font-size: 12px;
+      letter-spacing: 0.06em;
+    }
+
+    .topbar-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .icon-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      width: 34px;
+      height: 34px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.2s, border-color 0.2s;
+      flex-shrink: 0;
+    }
+
+    .icon-btn:hover {
+      color: var(--text);
+      border-color: var(--text-muted);
+    }
+
+    .icon-btn svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* ── PROGRAM CONTEXT ─────────────────────────────── */
+    .context-row {
+      padding: 8px 24px 22px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .ctx-tag {
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+
+    .ctx-sep {
+      color: var(--text-dim);
+      font-size: 9px;
+    }
+
+    .ctx-tag.highlight {
+      color: var(--text-muted);
+    }
+
+    /* ── EXERCISE HERO ───────────────────────────────── */
+    .exercise-hero {
+      padding: 0 24px 4px;
+    }
+
+    .exercise-name {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 80px;
+      font-weight: 900;
+      line-height: 0.88;
+      letter-spacing: -0.01em;
+      text-transform: uppercase;
+      color: var(--text);
+      margin-bottom: 14px;
+      word-break: break-word;
+    }
+
+    .exercise-spec {
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    /* ── SET PROGRESS ────────────────────────────────── */
+    .set-progress {
+      padding: 20px 24px 28px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .s-dot {
+      height: 4px;
+      border-radius: 2px;
+      background: var(--surface-2);
+      transition: all 0.3s ease;
+      flex: 1;
+    }
+
+    .s-dot.done    { background: var(--done); }
+    .s-dot.current { background: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
+
+    .progress-label {
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-left: 10px;
+      flex-shrink: 0;
+    }
+
+    /* ── READOUT ─────────────────────────────────────── */
+    .readout-wrap {
+      padding: 0 24px 8px;
+      display: flex;
+      align-items: flex-end;
+      gap: 0;
+    }
+
+    .weight-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding-bottom: 14px;
+      margin-right: 14px;
+    }
+
+    .ctrl-btn {
+      width: 38px;
+      height: 38px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      transition: all 0.12s;
+      user-select: none;
+    }
+
+    .ctrl-btn:active {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+      color: var(--accent);
+      transform: scale(0.95);
+    }
+
+    .weight-display {
+      display: flex;
+      align-items: flex-start;
+      flex: 1;
+    }
+
+    .weight-number {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 116px;
+      font-weight: 300;
+      line-height: 0.88;
+      color: var(--accent);
+      letter-spacing: -0.04em;
+      text-shadow:
+        0 0 40px rgba(232, 160, 32, 0.30),
+        0 0 100px rgba(232, 160, 32, 0.10);
+      transition: text-shadow 0.2s;
+    }
+
+    .weight-unit {
+      font-size: 18px;
+      font-weight: 300;
+      color: var(--text-muted);
+      margin-top: 14px;
+      margin-left: 5px;
+      letter-spacing: 0.04em;
+    }
+
+    .reps-panel {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      padding-bottom: 18px;
+      margin-left: auto;
+    }
+
+    .reps-label-sm {
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .reps-number {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 52px;
+      font-weight: 300;
+      color: var(--text-muted);
+      letter-spacing: -0.03em;
+      line-height: 1;
+    }
+
+    .weight-step-note {
+      padding: 0 24px 20px;
+      font-size: 10px;
+      color: var(--text-dim);
+      letter-spacing: 0.08em;
+    }
+
+    /* ── SETS LOG ────────────────────────────────────── */
+    .sets-log {
+      padding: 0 24px 20px;
+    }
+
+    .log-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 2px;
+    }
+
+    .log-header-label {
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+
+    .pr-badge {
+      font-size: 10px;
+      color: var(--accent);
+      letter-spacing: 0.06em;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .pr-badge::before {
+      content: '';
+      display: block;
+      width: 6px;
+      height: 6px;
+      border: 1.5px solid var(--accent);
+      border-radius: 1px;
+      transform: rotate(45deg);
+    }
+
+    .set-row {
+      display: grid;
+      grid-template-columns: 26px 1fr 80px 28px;
+      align-items: center;
+      gap: 4px;
+      padding: 9px 0;
+      border-bottom: 1px solid rgba(44, 48, 53, 0.6);
+    }
+
+    .set-row:last-child {
+      border-bottom: none;
+    }
+
+    .s-num {
+      font-size: 10px;
+      color: var(--text-dim);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .s-kg {
+      font-size: 13px;
+      color: var(--text);
+      font-weight: 500;
+      letter-spacing: 0.02em;
+    }
+
+    .s-kg span {
+      font-size: 10px;
+      font-weight: 300;
+      color: var(--text-muted);
+    }
+
+    .s-reps {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-align: right;
+    }
+
+    .s-check {
+      text-align: right;
+    }
+
+    .s-check svg {
+      width: 14px;
+      height: 14px;
+      stroke: var(--done);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    @keyframes row-flash {
+      0%   { background: rgba(74, 140, 111, 0.15); }
+      100% { background: transparent; }
+    }
+
+    .set-row.logged {
+      animation: row-flash 0.7s ease-out forwards;
+      border-radius: 2px;
+    }
+
+    /* ── LOG BUTTON ──────────────────────────────────── */
+    .log-section {
+      padding: 4px 24px 24px;
+    }
+
+    .log-btn {
+      width: 100%;
+      padding: 16px;
+      background: var(--accent);
+      color: #0E0F10;
+      border: none;
+      border-radius: 3px;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+
+    .log-btn:hover  { opacity: 0.9; }
+    .log-btn:active { transform: scale(0.98); }
+    .log-btn:disabled {
+      background: var(--surface-2);
+      color: var(--text-dim);
+      cursor: default;
+      transform: none;
+    }
+
+    /* ── NEXT EXERCISE ───────────────────────────────── */
+    .next-card {
+      margin: 0 24px 24px;
+      padding: 14px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+
+    .next-card:hover {
+      border-color: var(--text-dim);
+    }
+
+    .next-card-left {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .next-card-eyebrow {
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+
+    .next-card-name {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .next-card-meta {
+      font-size: 10px;
+      color: var(--text-dim);
+      letter-spacing: 0.06em;
+    }
+
+    .next-arrow {
+      color: var(--text-dim);
+    }
+
+    .next-arrow svg {
+      width: 18px;
+      height: 18px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* ── REST OVERLAY ────────────────────────────────── */
+    .rest-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(14, 16, 18, 0.96);
+      backdrop-filter: blur(12px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .rest-overlay.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .rest-eyebrow {
+      font-size: 9px;
+      letter-spacing: 0.22em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-bottom: 40px;
+    }
+
+    .rest-arc-wrap {
+      position: relative;
+      width: 220px;
+      height: 220px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 48px;
+    }
+
+    #rest-canvas {
+      position: absolute;
+      top: 0; left: 0;
+    }
+
+    .rest-counter {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .rest-seconds {
+      font-size: 80px;
+      font-weight: 300;
+      line-height: 1;
+      letter-spacing: -0.04em;
+      color: var(--text);
+    }
+
+    .rest-unit {
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+
+    .rest-next-info {
+      text-align: center;
+      margin-bottom: 52px;
+    }
+
+    .rest-next-label {
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .rest-next-text {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .rest-skip {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      padding: 11px 28px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .rest-skip:hover {
+      border-color: var(--text-muted);
+      color: var(--text);
+    }
+
+    /* ── BOTTOM NAV ──────────────────────────────────── */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 390px;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      display: flex;
+      z-index: 100;
+    }
+
+    .nav-tab {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      padding: 12px 4px 18px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-dim);
+      font-family: 'IBM Plex Mono', monospace;
+      transition: color 0.2s;
+    }
+
+    .nav-tab.active {
+      color: var(--accent);
+    }
+
+    .nav-tab svg {
+      width: 20px;
+      height: 20px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .nav-tab.active svg {
+      filter: drop-shadow(0 0 5px rgba(232, 160, 32, 0.4));
+    }
+
+    .nav-label {
+      font-size: 8px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .live-dot  { animation: none; }
+      .rest-overlay { transition: none; }
+      .weight-number { text-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="grid-texture"></canvas>
+
+<div class="frame">
+  <div class="app">
+
+    <!-- TOP BAR -->
+    <header class="topbar">
+      <div class="session-live">
+        <div class="live-dot"></div>
+        <span class="session-info">Aktiv&nbsp;&nbsp;</span>
+        <span class="session-time" id="session-timer">00:34</span>
+      </div>
+      <div class="topbar-actions">
+        <button class="icon-btn" aria-label="Pause">
+          <svg viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+        </button>
+        <button class="icon-btn" aria-label="Menü">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="19" r="1" fill="currentColor" stroke="none"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- CONTEXT -->
+    <div class="context-row">
+      <span class="ctx-tag">Mittelstufe</span>
+      <span class="ctx-sep">·</span>
+      <span class="ctx-tag highlight">Tag A</span>
+      <span class="ctx-sep">·</span>
+      <span class="ctx-tag">Einheit 14</span>
+    </div>
+
+    <!-- EXERCISE NAME -->
+    <div class="exercise-hero">
+      <h1 class="exercise-name" id="exercise-name">Kniebeuge</h1>
+      <p class="exercise-spec" id="exercise-spec">5 Sätze · 5 Wdhl. · Pause 90 s</p>
+    </div>
+
+    <!-- SET DOTS -->
+    <div class="set-progress" id="set-progress">
+      <span class="progress-label" id="progress-label"></span>
+    </div>
+
+    <!-- WEIGHT READOUT -->
+    <div class="readout-wrap">
+      <div class="weight-controls">
+        <button class="ctrl-btn" id="weight-up" aria-label="Gewicht erhöhen">+</button>
+        <button class="ctrl-btn" id="weight-down" aria-label="Gewicht verringern">−</button>
+      </div>
+      <div class="weight-display">
+        <span class="weight-number" id="weight-num">100</span>
+        <span class="weight-unit">kg</span>
+      </div>
+      <div class="reps-panel">
+        <span class="reps-label-sm">Wdhl.</span>
+        <span class="reps-number" id="reps-num">5</span>
+      </div>
+    </div>
+    <p class="weight-step-note">± 2,5 kg pro Schritt</p>
+
+    <!-- SETS LOG -->
+    <div class="sets-log">
+      <div class="log-header">
+        <span class="log-header-label">Heutige Sätze</span>
+        <span class="pr-badge">PR 110 kg</span>
+      </div>
+      <div id="sets-log-body"></div>
+    </div>
+
+    <!-- LOG BUTTON -->
+    <div class="log-section">
+      <button class="log-btn" id="log-btn">Satz erfassen</button>
+    </div>
+
+    <!-- NEXT EXERCISE -->
+    <div class="next-card" role="button" tabindex="0" aria-label="Zur nächsten Übung">
+      <div class="next-card-left">
+        <span class="next-card-eyebrow">Danach</span>
+        <span class="next-card-name">Bankdrücken</span>
+        <span class="next-card-meta">5 × 5 · 80 kg</span>
+      </div>
+      <span class="next-arrow">
+        <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+      </span>
+    </div>
+
+  </div><!-- .app -->
+</div><!-- .frame -->
+
+<!-- REST OVERLAY -->
+<div class="rest-overlay" id="rest-overlay" role="dialog" aria-label="Pausenzeit">
+  <p class="rest-eyebrow">Pause</p>
+  <div class="rest-arc-wrap">
+    <canvas id="rest-canvas" width="220" height="220"></canvas>
+    <div class="rest-counter">
+      <span class="rest-seconds" id="rest-seconds">90</span>
+      <span class="rest-unit">Sek.</span>
+    </div>
+  </div>
+  <div class="rest-next-info">
+    <p class="rest-next-label">Nächster Satz</p>
+    <p class="rest-next-text" id="rest-next-text">Satz 4 · 100 kg</p>
+  </div>
+  <button class="rest-skip" id="rest-skip">Überspringen</button>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav" aria-label="Navigation">
+  <button class="nav-tab active" aria-label="Training">
+    <svg viewBox="0 0 24 24"><path d="M6.5 6.5h11M6.5 12h11M6.5 17.5h11"/><rect x="2" y="4" width="2" height="16" rx="1"/><rect x="20" y="4" width="2" height="16" rx="1"/></svg>
+    <span class="nav-label">Training</span>
+  </button>
+  <button class="nav-tab" aria-label="Verlauf">
+    <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    <span class="nav-label">Verlauf</span>
+  </button>
+  <button class="nav-tab" aria-label="Körper">
+    <svg viewBox="0 0 24 24"><path d="M12 2a4 4 0 0 1 4 4 4 4 0 0 1-4 4 4 4 0 0 1-4-4 4 4 0 0 1 4-4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>
+    <span class="nav-label">Körper</span>
+  </button>
+  <button class="nav-tab" aria-label="Bestleistungen">
+    <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+    <span class="nav-label">Bestzeit</span>
+  </button>
+</nav>
+
+<script>
+// ── Grid texture ─────────────────────────────────────────────────
+(function () {
+  const canvas = document.getElementById('grid-texture');
+  const ctx = canvas.getContext('2d');
+  canvas.width = 390;
+  canvas.height = window.innerHeight;
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 0.5;
+  const sp = 24;
+  for (let x = 0; x <= canvas.width; x += sp) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+  }
+  for (let y = 0; y <= canvas.height; y += sp) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+  }
+})();
+
+// ── State ────────────────────────────────────────────────────────
+const state = {
+  weight: 100,
+  reps: 5,
+  totalSets: 5,
+  restDuration: 90,
+  loggedSets: [
+    { weight: 100, reps: 5 },
+    { weight: 100, reps: 5 },
+    { weight: 100, reps: 5 },
+  ],
+  sessionSec: 34 * 60,
+  restRemaining: 0,
+  restTimer: null,
+};
+
+// ── Refs ─────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const weightNum   = $('weight-num');
+const repsNum     = $('reps-num');
+const setProgress = $('set-progress');
+const progressLbl = $('progress-label');
+const setsLogBody = $('sets-log-body');
+const logBtn      = $('log-btn');
+const restOverlay = $('rest-overlay');
+const restSeconds = $('rest-seconds');
+const restNextTxt = $('rest-next-text');
+const sessionTimer = $('session-timer');
+
+// ── Render ───────────────────────────────────────────────────────
+function renderDots() {
+  setProgress.querySelectorAll('.s-dot').forEach(d => d.remove());
+  for (let i = 0; i < state.totalSets; i++) {
+    const d = document.createElement('div');
+    d.className = 's-dot';
+    if (i < state.loggedSets.length) d.classList.add('done');
+    else if (i === state.loggedSets.length) d.classList.add('current');
+    setProgress.insertBefore(d, progressLbl);
+  }
+  progressLbl.textContent = `${state.loggedSets.length}/${state.totalSets}`;
+}
+
+function renderLog() {
+  setsLogBody.innerHTML = '';
+  state.loggedSets.forEach((s, i) => {
+    const row = document.createElement('div');
+    row.className = 'set-row';
+    row.setAttribute('data-index', i);
+    row.innerHTML = `
+      <span class="s-num">${String(i + 1).padStart(2, '0')}</span>
+      <span class="s-kg">${s.weight}<span> kg</span></span>
+      <span class="s-reps">${s.reps} Wdhl.</span>
+      <span class="s-check">
+        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+      </span>`;
+    setsLogBody.appendChild(row);
+  });
+}
+
+function renderWeight() {
+  weightNum.textContent = state.weight % 1 === 0
+    ? state.weight
+    : state.weight.toFixed(1);
+}
+
+function renderAll() {
+  renderDots();
+  renderLog();
+  renderWeight();
+  repsNum.textContent = state.reps;
+  const done = state.loggedSets.length >= state.totalSets;
+  logBtn.disabled = done;
+  logBtn.textContent = done ? 'Alle Sätze erledigt ✓' : 'Satz erfassen';
+}
+
+// ── Controls ─────────────────────────────────────────────────────
+$('weight-up').addEventListener('click', () => {
+  state.weight = Math.round((state.weight + 2.5) * 10) / 10;
+  renderWeight();
+});
+
+$('weight-down').addEventListener('click', () => {
+  if (state.weight > 0) {
+    state.weight = Math.round((state.weight - 2.5) * 10) / 10;
+    renderWeight();
+  }
+});
+
+// ── Log set ──────────────────────────────────────────────────────
+logBtn.addEventListener('click', () => {
+  if (state.loggedSets.length >= state.totalSets) return;
+  state.loggedSets.push({ weight: state.weight, reps: state.reps });
+  renderAll();
+
+  // Flash the last row
+  const rows = setsLogBody.querySelectorAll('.set-row');
+  const last = rows[rows.length - 1];
+  if (last) {
+    last.classList.add('logged');
+    setTimeout(() => last.classList.remove('logged'), 700);
+  }
+
+  if (state.loggedSets.length < state.totalSets) {
+    startRest();
+  }
+});
+
+// ── Rest timer ───────────────────────────────────────────────────
+function startRest() {
+  state.restRemaining = state.restDuration;
+  restNextTxt.textContent = `Satz ${state.loggedSets.length + 1} · ${state.weight} kg`;
+  restOverlay.classList.add('active');
+  drawArc();
+
+  clearInterval(state.restTimer);
+  state.restTimer = setInterval(() => {
+    state.restRemaining--;
+    restSeconds.textContent = state.restRemaining;
+    drawArc();
+    if (state.restRemaining <= 0) {
+      clearInterval(state.restTimer);
+      restOverlay.classList.remove('active');
+    }
+  }, 1000);
+}
+
+$('rest-skip').addEventListener('click', () => {
+  clearInterval(state.restTimer);
+  restOverlay.classList.remove('active');
+});
+
+function drawArc() {
+  const canvas = $('rest-canvas');
+  const ctx = canvas.getContext('2d');
+  const cx = 110, cy = 110, r = 100;
+  ctx.clearRect(0, 0, 220, 220);
+
+  // Track
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Progress
+  const pct = state.restRemaining / state.restDuration;
+  if (pct > 0) {
+    const start = -Math.PI / 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, start, start + pct * Math.PI * 2);
+    ctx.strokeStyle = '#E8A020';
+    ctx.lineWidth = 1.5;
+    ctx.lineCap = 'round';
+    ctx.shadowBlur = 16;
+    ctx.shadowColor = 'rgba(232,160,32,0.5)';
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+}
+
+// ── Session clock ────────────────────────────────────────────────
+setInterval(() => {
+  state.sessionSec++;
+  const m = Math.floor(state.sessionSec / 60).toString().padStart(2, '0');
+  const s = (state.sessionSec % 60).toString().padStart(2, '0');
+  sessionTimer.textContent = `${m}:${s}`;
+}, 1000);
+
+// ── Nav tabs ─────────────────────────────────────────────────────
+document.querySelectorAll('.nav-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+  });
+});
+
+// ── Init ─────────────────────────────────────────────────────────
+renderAll();
+drawArc();
+</script>
+
+</body>
+</html>
