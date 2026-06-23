@@ -8,57 +8,58 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Gym Trainer">
-<meta name="theme-color" content="#1e1e1c">
+<meta name="theme-color" content="#141618">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,900;1,700&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 :root {
-  --bg: #fff;
-  --bg2: #f4f4f2;
-  --bg3: #ebebea;
-  --bgi: #e6f1fb;
-  --bgs: #eaf3de;
-  --bgw: #faeeda;
-  --bgd: #fcebeb;
-  --t: #1a1a19;
-  --t2: #6b6b68;
-  --t3: #a0a09d;
-  --ti: #0c447c;
-  --ts: #27500a;
-  --tw: #633806;
-  --td: #791f1f;
-  --b: rgba(0,0,0,0.12);
-  --bm: rgba(0,0,0,0.22);
-  --rm: 8px;
-  --rl: 12px;
-  --f: 'DM Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --fb: 'Bebas Neue', Impact, sans-serif;
-  --acc: #9B6A1A;
-  --accbg: rgba(155,106,26,.12);
+  /* Light mode — neutral, functional */
+  --bg:    #f5f4f1;
+  --bg2:   #eceae5;
+  --bg3:   #e2e0da;
+  --bgi:   #ddeaf6;
+  --bgs:   #dff0d2;
+  --bgw:   #faeeda;
+  --bgd:   #fae0e0;
+  --t:     #18191a;
+  --t2:    #5a5c60;
+  --t3:    #9a9c9f;
+  --ti:    #0c447c;
+  --ts:    #27500a;
+  --tw:    #633806;
+  --td:    #791f1f;
+  --b:     rgba(0,0,0,0.10);
+  --bm:    rgba(0,0,0,0.18);
+  --rm:    4px;
+  --rl:    6px;
+  --f:     'IBM Plex Mono', 'Menlo', monospace;
+  --fb:    'Barlow Condensed', 'Impact', sans-serif;
+  --acc:   #C8820A;
+  --accbg: rgba(200,130,10,.12);
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #1e1e1c;
-    --bg2: #2a2a28;
-    --bg3: #222220;
-    --bgi: #042c53;
-    --bgs: #173404;
-    --bgw: #412402;
-    --bgd: #501313;
-    --t: #f0efeb;
-    --t2: #a8a8a4;
-    --t3: #6b6b68;
-    --ti: #85b7eb;
-    --ts: #97c459;
-    --tw: #ef9f27;
-    --td: #f09595;
-    --b: rgba(255,255,255,0.1);
-    --bm: rgba(255,255,255,0.2);
-    --acc: #C8892A;
-    --accbg: rgba(200,137,42,.12);
+    --bg:    #141618;
+    --bg2:   #1D2023;
+    --bg3:   #252A2E;
+    --bgi:   #071e38;
+    --bgs:   #0d2208;
+    --bgw:   #291500;
+    --bgd:   #270d0d;
+    --t:     #EDEDED;
+    --t2:    #737880;
+    --t3:    #3A3F45;
+    --ti:    #6a9fd4;
+    --ts:    #7ab855;
+    --tw:    #d4882a;
+    --td:    #d47070;
+    --b:     rgba(255,255,255,0.06);
+    --bm:    rgba(255,255,255,0.12);
+    --acc:   #E8A020;
+    --accbg: rgba(232,160,32,0.10);
   }
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -593,9 +594,9 @@ body {
 .rest-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,.75);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: rgba(14,15,16,0.94);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   z-index: 200;
   display: none;
   flex-direction: column;
@@ -603,26 +604,53 @@ body {
   justify-content: center;
   gap: 12px;
 }
-.rest-overlay-lbl { font-size: 13px; color: rgba(255,255,255,.6); text-transform: uppercase; letter-spacing: .1em; }
-.rest-secs { font-family: var(--fb); font-size: 64px; color: #fff; line-height: 1; }
-.rest-secs-lbl { font-size: 13px; color: rgba(255,255,255,.5); }
-.rest-next { font-size: 13px; color: rgba(255,255,255,.7); max-width: 240px; text-align: center; }
+.rest-overlay-lbl {
+  font-size: 9px;
+  color: var(--t3);
+  text-transform: uppercase;
+  letter-spacing: .20em;
+  font-family: var(--f);
+}
+.rest-secs {
+  font-family: var(--f);
+  font-size: 80px;
+  font-weight: 300;
+  color: var(--t);
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+.rest-secs-lbl {
+  font-size: 10px;
+  color: var(--t3);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+.rest-next {
+  font-size: 12px;
+  color: var(--t2);
+  max-width: 240px;
+  text-align: center;
+  letter-spacing: 0.04em;
+}
 .rest-skip {
   background: none;
-  border: .5px solid rgba(255,255,255,.3);
+  border: .5px solid var(--bm);
   border-radius: var(--rm);
-  padding: 8px 20px;
+  padding: 10px 24px;
   cursor: pointer;
-  font-size: 13px;
-  color: rgba(255,255,255,.8);
+  font-size: 11px;
+  letter-spacing: .08em;
+  color: var(--t2);
   font-family: var(--f);
-  margin-top: 4px;
+  margin-top: 8px;
+  transition: border-color .2s, color .2s;
 }
-.rest-skip:hover { background: rgba(255,255,255,.1); }
+.rest-skip:hover { border-color: var(--t2); color: var(--t); }
 </style>
 </head>
 <body>
-<div class="app">
+<canvas id="grid-tex" style="position:fixed;inset:0;pointer-events:none;opacity:0.035;z-index:0;width:100%;height:100vh"></canvas>
+<div class="app" style="position:relative;z-index:1">
 
 <!-- Header -->
 <div class="header">
@@ -1174,7 +1202,7 @@ function drawRestRing(pct) {
   if (pct > 0) {
     ctx.beginPath();
     ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + pct * Math.PI * 2);
-    ctx.strokeStyle = pct > 0.25 ? "#C8892A" : "#C05A50";
+    ctx.strokeStyle = pct > 0.25 ? "#E8A020" : "#d47070";
     ctx.lineWidth = 8;
     ctx.lineCap = "round";
     ctx.stroke();
@@ -1990,7 +2018,7 @@ function rChart() {
   const gc = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
   CI = new Chart(ctx, {
     type: "line",
-    data: { labels, datasets: [{ data, borderColor: "#C8892A", backgroundColor: "rgba(200,137,42,0.08)", borderWidth: 2, pointRadius: 4, pointBackgroundColor: "#C8892A", tension: 0.3, fill: true }] },
+    data: { labels, datasets: [{ data, borderColor: "#E8A020", backgroundColor: "rgba(232,160,32,0.08)", borderWidth: 1.5, pointRadius: 3, pointBackgroundColor: "#E8A020", tension: 0.3, fill: true }] },
     options: {
       responsive: true,
       maintainAspectRatio: false,
@@ -2035,6 +2063,24 @@ function saveUrl() {
   e.style.display = "block";
   setTimeout(() => e.style.display = "none", 2000);
 }
+
+// ─── Grid texture ─────────────────────────────────────────────────────────
+(function () {
+  const c = document.getElementById("grid-tex");
+  if (!c) return;
+  c.width = window.innerWidth;
+  c.height = window.innerHeight;
+  const ctx = c.getContext("2d");
+  ctx.strokeStyle = window.matchMedia("(prefers-color-scheme: dark)").matches ? "#ffffff" : "#000000";
+  ctx.lineWidth = 0.5;
+  const sp = 26;
+  for (let x = 0; x <= c.width; x += sp) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, c.height); ctx.stroke();
+  }
+  for (let y = 0; y <= c.height; y += sp) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(c.width, y); ctx.stroke();
+  }
+})();
 
 // ─── Init ──────────────────────────────────────────────────────────────────
 document.getElementById("hdate").textContent = fd(todayDate);
