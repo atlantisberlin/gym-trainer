@@ -220,27 +220,6 @@ a { color: var(--acc-text); text-decoration: none; }
 .chip-acc { background: var(--acc-dim); color: var(--acc-text); }
 .chip-line { background: transparent; border: 1px solid var(--line2); }
 
-/* ── Wochen-Strip (Heute) ──────────────────────────────────────────── */
-.week-strip {
-  display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px;
-  margin-bottom: 16px;
-}
-.ws-day {
-  aspect-ratio: .82;
-  border-radius: 12px;
-  background: var(--s1);
-  border: 1px solid var(--line);
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
-  font-size: 10.5px; font-weight: 600; color: var(--t3);
-}
-.ws-day b { font-size: 13px; font-weight: 700; color: var(--t2); }
-.ws-day.today { border-color: var(--t2); }
-.ws-day.done { background: var(--acc-dim); border-color: transparent; }
-.ws-day.done b { color: var(--acc-text); }
-.ws-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--line2); }
-.ws-day.done .ws-dot { background: var(--acc-text); }
-.ws-day.planned .ws-dot { background: var(--t2); }
-
 /* ── Heute: Workout-Karte ──────────────────────────────────────────── */
 .hero-card {
   background: var(--s1);

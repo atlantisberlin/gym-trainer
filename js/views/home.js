@@ -1,7 +1,7 @@
-// ─── Heute: Wochenübersicht, heutiges Training, Schnellstart ────────────────
+// ─── Heute: Heutiges Training, Schnellstart, Schnell-Statistik ──────────────
 import { ic } from '../icons.js';
 import { S, activePlan, todaysDay, getEx, calcStreak, totalWorkouts, suggestFor } from '../state.js';
-import { DAYS, DAYS_LONG, toISO, addDays, weekdayIdx, fmtKg, esc } from '../util.js';
+import { DAYS_LONG, toISO, addDays, weekdayIdx, fmtKg, esc } from '../util.js';
 import { A } from '../actions.js';
 import * as player from './player.js';
 
@@ -9,21 +9,8 @@ export function render() {
   const el = document.getElementById('v-home');
   const plan = activePlan();
   const today = todaysDay();
-  const wd = weekdayIdx();
 
-  // Wochen-Strip: Mo–So der aktuellen Woche
-  const monday = addDays(new Date(), -wd);
-  const logDates = new Set(S.logs.map(l => l.date));
-  const plannedDays = new Set(plan ? plan.days.map(d => d.weekday).filter(w => w != null) : []);
-  const strip = DAYS.map((d, i) => {
-    const date = addDays(monday, i);
-    const iso = toISO(date);
-    const done = logDates.has(iso);
-    const cls = ['ws-day', done ? 'done' : '', i === wd ? 'today' : '', plannedDays.has(i) && !done ? 'planned' : ''].filter(Boolean).join(' ');
-    return `<div class="${cls}"><span>${d}</span><b>${date.getDate()}</b><span class="ws-dot"></span></div>`;
-  }).join('');
-
-  const html = [`<div class="week-strip">${strip}</div>`];
+  const html = [];
 
   // Laufendes Training fortsetzen
   if (S.session) {
@@ -56,18 +43,26 @@ export function render() {
   }
 
   // Andere Trainingstage des aktiven Plans (Schnellstart)
+  // Häkchen = so oft wurde dieser Trainingstag diese Woche abgeschlossen –
+  // egal an welchem Wochentag (Mittwoch-Training am Donnerstag zählt mit).
   if (plan && !S.session) {
+    const monday = toISO(addDays(new Date(), -weekdayIdx()));
+    const doneCount = d => S.logs.filter(l => l.dayId === d.id && l.date >= monday).length;
     const others = plan.days.filter(d => d !== today);
     if (others.length) {
       html.push(`<div class="slbl">Frei starten · ${esc(plan.name)}</div>`);
-      html.push(others.map(d => `
+      html.push(others.map(d => {
+        const n = doneCount(d);
+        const checks = n > 0 ? `<span class="chip chip-acc" title="Diese Woche ${n}× absolviert">${'✓'.repeat(Math.min(n, 4))}</span>` : '';
+        return `
         <button class="row" onclick="A.startDay('${plan.id}','${d.id}')">
           <div class="row-main">
             <div class="row-title">${esc(d.name)}</div>
             <div class="row-sub">${d.weekday != null ? DAYS_LONG[d.weekday] + ' · ' : ''}${d.entries.length} Übungen</div>
           </div>
-          <div class="row-end">${ic('chevron_right')}</div>
-        </button>`).join(''));
+          <div class="row-end">${checks}${ic('chevron_right')}</div>
+        </button>`;
+      }).join(''));
     }
   }
 
