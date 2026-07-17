@@ -1,0 +1,5 @@
+# Lokale Agent-/Skill-Konfiguration (nicht Teil der App)
+.agents/
+.claude/
+skills-lock.json
+node_modules/

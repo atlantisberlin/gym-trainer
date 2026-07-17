@@ -2,10 +2,11 @@
   "name": "Gym Trainer",
   "short_name": "Gym Trainer",
   "description": "Persönlicher Trainingsplan mit Fortschritts-Tracking",
-  "start_url": "/gym-trainer/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#1e1e1c",
-  "theme_color": "#1e1e1c",
+  "background_color": "#0c0c0d",
+  "theme_color": "#0c0c0d",
   "orientation": "portrait",
   "icons": [
     {
