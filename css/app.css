@@ -96,7 +96,7 @@ a { color: var(--acc-text); text-decoration: none; }
 /* ── Topbar ─────────────────────────────────────────────────────────── */
 .topbar {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 18px 0 14px;
+  padding: calc(env(safe-area-inset-top, 0px) + 18px) 0 14px;
 }
 .topbar-title {
   font-variation-settings: 'wdth' 122;
