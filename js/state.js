@@ -34,7 +34,7 @@ function defaultState() {
       logs: [],              // neueste zuerst: {id,date,device,name,min,km,hr,kcal,rpe}
       session: null,         // laufende Einheit: {device,name,templateId,mode,targetMin,workSec,restSec,rounds,note,start,pausedAt,pausedMs}
       pending: null,         // beendet, aber noch nicht gespeichert: {device,name,min,date}
-      watch: { enabled: false, startName: 'Gym Cardio Start', importName: 'Gym Cardio Import' },
+      watch: { enabled: false, startName: 'Gym Cardio Start', stopName: 'Gym Cardio Stopp' },
     },
   };
 }
