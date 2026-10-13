@@ -5,6 +5,7 @@ import { S, load, save, refreshExMap } from './state.js';
 import { fmtDateLong } from './util.js';
 import * as home from './views/home.js';
 import * as plans from './views/plans.js';
+import * as cardio from './views/cardio.js';
 import * as stats from './views/stats.js';
 import * as player from './views/player.js';
 import * as settings from './views/settings.js';
@@ -12,10 +13,11 @@ import * as settings from './views/settings.js';
 const TABS = [
   { id: 'home',      label: 'Heute',       icon: 'barbell',        title: 'Heute' },
   { id: 'plans',     label: 'Pläne',       icon: 'clipboard_list', title: 'Pläne' },
+  { id: 'cardio',    label: 'Cardio',      icon: 'heartbeat',      title: 'Cardio' },
   { id: 'stats',     label: 'Fortschritt', icon: 'chart_line',     title: 'Fortschritt' },
 ];
 
-const VIEWS = { home, plans, stats };
+const VIEWS = { home, plans, cardio, stats };
 let current = 'home';
 
 export function switchTab(id) {
@@ -59,7 +61,8 @@ renderNav();
 document.getElementById('btn-settings').innerHTML = ic('settings');
 document.getElementById('btn-settings').addEventListener('click', () => settings.open());
 
-switchTab('home');
+switchTab(S.cardio.session || S.cardio.pending ? 'cardio' : 'home');
+cardio.restore();
 
 // Laufende Session wiederherstellen? Der Player bleibt geschlossen,
 // die Heute-Ansicht zeigt eine "Fortsetzen"-Karte (bewusste Entscheidung).

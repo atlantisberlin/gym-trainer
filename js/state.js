@@ -28,7 +28,22 @@ function defaultState() {
     legacyCount: 0,        // Workouts aus alter App, die nicht als Detail-Log vorliegen
     session: null,         // laufendes Training
     goal: null,            // { targetWeight, targetDate, startWeight, startDate } | null
+    cardio: {
+      goalMin: 150,          // Wochenziel in Minuten
+      templates: defaultCardioTemplates(),  // {id,name,device,mode:'free'|'interval',targetMin,workSec,restSec,rounds,note}
+      logs: [],              // neueste zuerst: {id,date,device,name,min,km,hr,kcal,rpe}
+      session: null,         // laufende Einheit: {device,name,templateId,mode,targetMin,workSec,restSec,rounds,note,start,pausedAt,pausedMs}
+      pending: null,         // beendet, aber noch nicht gespeichert: {device,name,min,date}
+      watch: { enabled: false, startName: 'Gym Cardio Start', importName: 'Gym Cardio Import' },
+    },
   };
+}
+
+function defaultCardioTemplates() {
+  return [
+    { id: uid(), name: 'Zone 2', device: 'laufband', mode: 'free', targetMin: 40, note: 'Locker, Puls ca. 125–140' },
+    { id: uid(), name: 'HIIT', device: 'ergometer', mode: 'interval', workSec: 30, restSec: 90, rounds: 8, note: 'Sprint voll, Pause locker treten' },
+  ];
 }
 
 export let S = defaultState();
@@ -43,6 +58,9 @@ export function load() {
     if (raw) {
       S = { ...defaultState(), ...JSON.parse(raw) };
       S.settings = { ...defaultState().settings, ...S.settings };
+      const dc = defaultState().cardio;
+      S.cardio = { ...dc, ...S.cardio };
+      S.cardio.watch = { ...dc.watch, ...S.cardio.watch };
       S.plans.forEach(p => { if (!p.kind) p.kind = 'gym'; });
       return;
     }
@@ -262,6 +280,12 @@ export function logBodyWeight(w, date = todayISO()) {
   else S.bodyLog.unshift({ date, weight: w });
   S.bodyLog = S.bodyLog.slice(0, 200);
   save();
+}
+
+// ─── Cardio ─────────────────────────────────────────────────────────────────
+// Minuten pro Woche (Montag-ISO → Summe)
+export function cardioMinutesSince(fromIso) {
+  return S.cardio.logs.filter(l => l.date >= fromIso).reduce((n, l) => n + (l.min || 0), 0);
 }
 
 export function totalWorkouts() {
