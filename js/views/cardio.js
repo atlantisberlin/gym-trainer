@@ -78,7 +78,7 @@ export function render() {
       <span class="dev-ic">${ic('device_watch')}</span>
       <div class="row-main">
         <div class="row-title">${c.watch.enabled ? 'Verbunden über Kurzbefehle' : 'Mit Apple Watch verbinden'}</div>
-        <div class="row-sub">${c.watch.enabled ? 'Training startet automatisch auf der Uhr' : 'Training auf der Uhr mitstarten, Puls & kcal übernehmen'}</div>
+        <div class="row-sub">${c.watch.enabled ? 'Start & Beenden steuern das Training auf der Uhr' : 'Training auf der Uhr automatisch starten & beenden'}</div>
       </div>
       <div class="row-end">${c.watch.enabled ? `<span class="chip chip-acc">${ic('check')} Aktiv</span>` : ''}${ic('chevron_right')}</div>
     </button>`);
@@ -341,7 +341,7 @@ function renderPlayer() {
       <div class="num cp-clock" id="cp-clock">0:00</div>
       <div class="cp-sub" id="cp-sub"></div>
       ${s.note ? `<div class="cp-note">${esc(s.note)}</div>` : ''}
-      ${S.cardio.watch.enabled ? `<div class="cp-note">${ic('device_watch')} Puls &amp; Kalorien zeichnet die Apple Watch auf</div>` : ''}
+      ${S.cardio.watch.enabled ? `<div class="cp-note">${ic('device_watch')} Training läuft auch auf der Apple Watch</div>` : ''}
     </div>
     <div class="cp-actions">
       <button class="btn btn-danger" style="flex:1" onclick="A.cardioEnd()">${ic('player_stop')} Beenden</button>
@@ -422,6 +422,8 @@ A.cardioEnd = async () => {
   save();
   closePlayer();
   A.cardioLog();
+  // Training auf der Uhr mit beenden
+  if (S.cardio.watch.enabled) runShortcut(S.cardio.watch.stopName, dev(S.cardio.pending.device).label);
 };
 
 // ═══ Eintragen / Nachtragen ═════════════════════════════════════════════════
@@ -433,16 +435,7 @@ A.cardioLog = manual => {
   openSheet({
     title: pending ? 'Einheit speichern' : 'Einheit nachtragen',
     body: `
-      ${w.enabled ? `
-        <div class="card" style="background:var(--s2)">
-          <div class="row-title" style="display:flex;align-items:center;gap:8px">${ic('device_watch')} Werte von der Apple Watch</div>
-          <div class="row-sub" style="margin:4px 0 12px">Erst das Training auf der Uhr beenden. Dann Werte holen, zurück in die App wechseln und einfügen.</div>
-          <div class="flex" style="gap:8px">
-            <button class="btn sm" style="flex:1" data-fetch>${ic('download')} 1. Holen</button>
-            <button class="btn sm btn-acc" style="flex:1" data-paste>${ic('clipboard_check')} 2. Einfügen</button>
-          </div>
-          <textarea class="inp" data-pastebox hidden rows="3" style="margin-top:10px" placeholder="Zwischenablage hier einfügen (lange tippen → Einsetzen)"></textarea>
-        </div>` : ''}
+      ${w.enabled ? `<div class="field-hint" style="margin:0 0 14px">${ic('device_watch')} Puls, kcal &amp; Distanz kannst du von der Uhr oder dem Gerät abschreiben.</div>` : ''}
       <div class="field"><label>Gerät</label><div class="pills" style="flex-wrap:wrap">
         ${DEVICES.map(x => `<button class="pill${x.id === d.device ? ' on' : ''}" data-dev="${x.id}">${x.label}</button>`).join('')}
       </div></div>
@@ -472,35 +465,6 @@ A.cardioLog = manual => {
         rpe = rpe === +b.dataset.rpe ? null : +b.dataset.rpe;
         sheet.querySelectorAll('[data-rpe]').forEach(x => x.classList.toggle('on', +x.dataset.rpe === rpe));
       }));
-
-      const fill = text => {
-        const v = parseHealthText(text);
-        if (!v) { toast('Keine Werte erkannt', 'info_circle'); return false; }
-        if (v.hr) $('#cl-hr').value = Math.round(v.hr);
-        if (v.kcal) $('#cl-kcal').value = Math.round(v.kcal);
-        if (v.km) $('#cl-km').value = fmtNum(v.km, 2);
-        if (v.min && !$('#cl-min').value) $('#cl-min').value = Math.round(v.min);
-        toast('Watch-Werte übernommen');
-        return true;
-      };
-      if (w.enabled) {
-        $('[data-fetch]').addEventListener('click', () => {
-          const min = parseInt($('#cl-min').value) || 60;
-          runShortcut(w.importName, String(min));
-        });
-        const box = $('[data-pastebox]');
-        $('[data-paste]').addEventListener('click', async () => {
-          try {
-            const text = await navigator.clipboard.readText();
-            if (fill(text)) box.hidden = true;
-          } catch (e) {
-            // Kein Zugriff auf die Zwischenablage → manuelles Einfügen anbieten
-            box.hidden = false;
-            box.focus();
-          }
-        });
-        box.addEventListener('input', () => { if (fill(box.value)) box.hidden = true; });
-      }
 
       $('[data-save]').addEventListener('click', () => {
         const min = parseInt($('#cl-min').value);
@@ -542,69 +506,45 @@ function parseLocaleNum(str) {
   return Number.isFinite(n) ? n : null;
 }
 
-// Text aus dem Import-Kurzbefehl: Zeilen "puls=138", "kcal=290", "km=4,1" (oder JSON)
-export function parseHealthText(text) {
-  if (!text) return null;
-  const out = {};
-  const keys = { hr: /^(puls|hr|herz\w*)$/, kcal: /^(kcal|kalorien|energie)$/, km: /^(km|distanz|distance)$/, min: /^(min|dauer)$/ };
-  let pairs = [];
-  try {
-    const j = JSON.parse(text);
-    if (j && typeof j === 'object') pairs = Object.entries(j);
-  } catch (e) {
-    pairs = text.split(/[\n;]+/).map(line => line.split(/[=:]/)).filter(p => p.length >= 2);
-  }
-  for (const [k, v] of pairs) {
-    const key = Object.keys(keys).find(x => keys[x].test(String(k).trim().toLowerCase()));
-    const n = parseLocaleNum(v);
-    if (key && n > 0) out[key] = n;
-  }
-  if (out.km > 100) out.km /= 1000; // Kurzbefehl hat Meter geliefert
-  return Object.keys(out).length ? out : null;
-}
-
 // ═══ Apple-Watch-Einrichtung ════════════════════════════════════════════════
 A.cardioWatchSetup = () => {
   const w = S.cardio.watch;
+  const steps = action => `
+    <ol>
+      <li>App <b>Kurzbefehle</b> öffnen → <b>+</b></li>
+      <li>Aktion <b>${action}</b> hinzufügen</li>
+      <li>Kurzbefehl genau so benennen wie unten</li>
+    </ol>`;
   openSheet({
     title: 'Apple Watch',
     body: `
       <div class="set-item">
         ${ic('device_watch')}
-        <div class="set-main"><div class="set-name">Über Kurzbefehle verbinden</div><div class="set-sub">Startet das Training auf der Uhr mit und holt danach Puls, kcal &amp; km</div></div>
-        <button class="switch${w.enabled ? ' on' : ''}" data-sw role="switch" aria-checked="${w.enabled}" aria-label="Apple Watch verbinden"></button>
+        <div class="set-main"><div class="set-name">Training auf der Uhr mitsteuern</div><div class="set-sub">Start &amp; Beenden in der App starten/beenden das Training auf der Watch</div></div>
+        <button class="switch${w.enabled ? ' on' : ''}" data-sw role="switch" aria-checked="${w.enabled}" aria-label="Apple Watch mitsteuern"></button>
       </div>
 
-      <div class="slbl">1 · Start-Kurzbefehl</div>
+      <div class="slbl">Start-Kurzbefehl</div>
       <div class="guide">
-        <ol>
-          <li>In der App <b>Kurzbefehle</b> einen neuen Kurzbefehl anlegen.</li>
-          <li>Aktion <b>Training starten</b> hinzufügen und die Trainingsart wählen (z. B. Indoor-Laufen).</li>
-          <li>Optional für mehrere Geräte: vorher <b>Wenn</b> mit der <b>Kurzbefehleingabe</b> – die App übergibt den Gerätenamen, z. B. „Laufband“ oder „Ergometer“.</li>
-          <li>Den Kurzbefehl exakt so benennen:</li>
-        </ol>
+        ${steps('Training starten')}
+        <p style="margin-bottom:8px">Die App übergibt das Gerät als Text (<b>Laufband</b>, <b>Ergometer</b>, <b>Crosstrainer</b>, <b>Rudern</b>, <b>Stepper</b>, <b>Draußen</b>). Für verschiedene Trainingsarten je Gerät einen Block <b>Wenn</b> · Kurzbefehleingabe · ist · <i>Gerät</i> anlegen.</p>
         <input class="inp" id="cw-start" value="${esc(w.startName)}" aria-label="Name des Start-Kurzbefehls">
-        <button class="btn sm full mt8" data-test-start>${ic('player_play')} Start testen</button>
+        <button class="btn sm full mt8" data-test="start">${ic('player_play')} Start testen</button>
       </div>
 
-      <div class="slbl">2 · Import-Kurzbefehl</div>
+      <div class="slbl">Stopp-Kurzbefehl</div>
       <div class="guide">
-        <ol>
-          <li>Neuer Kurzbefehl. Die App übergibt als Eingabe die Dauer in Minuten.</li>
-          <li><b>Health-Beispiele suchen</b>: Typ <b>Herzfrequenz</b>, Startdatum <i>in den letzten</i> [Kurzbefehleingabe] Minuten. Danach <b>Statistik berechnen → Durchschnitt</b>.</li>
-          <li>Dasselbe für <b>Aktive Energie</b> und <b>Gehen + Laufen Distanz</b> (bzw. Radfahren Distanz), jeweils <b>Summe</b>.</li>
-          <li>Aktion <b>Text</b> mit drei Zeilen:<br><code>puls=[Durchschnitt]<br>kcal=[Summe Energie]<br>km=[Summe Distanz]</code></li>
-          <li>Danach <b>In Zwischenablage kopieren</b>. Den Kurzbefehl so benennen:</li>
-        </ol>
-        <input class="inp" id="cw-import" value="${esc(w.importName)}" aria-label="Name des Import-Kurzbefehls">
-        <div class="field-hint">Die Bezeichnungen der Aktionen können je nach iOS-Version leicht abweichen. Distanz in Metern erkennt die App automatisch.</div>
+        ${steps('Training beenden')}
+        <input class="inp" id="cw-stop" value="${esc(w.stopName)}" aria-label="Name des Stopp-Kurzbefehls">
+        <button class="btn sm full mt8" data-test="stop">${ic('player_stop')} Stopp testen</button>
       </div>
+      <div class="field-hint mt8">Nach dem Kurzbefehl springt das iPhone in die Kurzbefehle-App – einfach zurück in die Gym-App wechseln, die Zeit läuft weiter.</div>
       <button class="btn btn-acc full mt16" data-ok>Fertig</button>`,
     onOpen(sheet) {
       const $ = s => sheet.querySelector(s);
       const persist = () => {
         w.startName = $('#cw-start').value.trim() || 'Gym Cardio Start';
-        w.importName = $('#cw-import').value.trim() || 'Gym Cardio Import';
+        w.stopName = $('#cw-stop').value.trim() || 'Gym Cardio Stopp';
         save();
       };
       $('[data-sw]').addEventListener('click', e => {
@@ -614,8 +554,11 @@ A.cardioWatchSetup = () => {
         save();
       });
       $('#cw-start').addEventListener('change', persist);
-      $('#cw-import').addEventListener('change', persist);
-      $('[data-test-start]').addEventListener('click', () => { persist(); runShortcut(w.startName, 'Laufband'); });
+      $('#cw-stop').addEventListener('change', persist);
+      sheet.querySelectorAll('[data-test]').forEach(b => b.addEventListener('click', () => {
+        persist();
+        runShortcut(b.dataset.test === 'start' ? w.startName : w.stopName, 'Laufband');
+      }));
       $('[data-ok]').addEventListener('click', () => { persist(); closeSheet(); render(); });
     },
   });
