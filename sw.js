@@ -1,4 +1,4 @@
-const CACHE = 'gym-trainer-v5.6.0';
+const CACHE = 'gym-trainer-v5.6.1';
 const ASSETS = [
   './',
   './index.html',
@@ -26,7 +26,11 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)));
+  // cache: 'reload' umgeht den HTTP-Cache des Browsers (GitHub Pages: max-age=600).
+  // Sonst landen nach einem Update einzelne alte Dateien neben neuen im Cache
+  // und die App läuft mit gemischten Versionen.
+  e.waitUntil(caches.open(CACHE).then(cache =>
+    cache.addAll(ASSETS.map(url => new Request(url, { cache: 'reload' })))));
   self.skipWaiting();
 });
 
