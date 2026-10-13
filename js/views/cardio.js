@@ -422,6 +422,8 @@ A.cardioEnd = async () => {
   save();
   closePlayer();
   A.cardioLog();
+  // Import-Kurzbefehl direkt mitstarten – er kopiert Puls/kcal/km in die Zwischenablage
+  if (S.cardio.watch.enabled) runShortcut(S.cardio.watch.importName, String(S.cardio.pending.min));
 };
 
 // ═══ Eintragen / Nachtragen ═════════════════════════════════════════════════
@@ -436,10 +438,12 @@ A.cardioLog = manual => {
       ${w.enabled ? `
         <div class="card" style="background:var(--s2)">
           <div class="row-title" style="display:flex;align-items:center;gap:8px">${ic('device_watch')} Werte von der Apple Watch</div>
-          <div class="row-sub" style="margin:4px 0 12px">Erst das Training auf der Uhr beenden. Dann Werte holen, zurück in die App wechseln und einfügen.</div>
+          <div class="row-sub" style="margin:4px 0 12px">${pending
+            ? 'Die Werte werden gerade über den Kurzbefehl geholt. Danach zurück in die App wechseln und einfügen.'
+            : 'Werte über den Kurzbefehl holen, zurück in die App wechseln und einfügen.'}</div>
           <div class="flex" style="gap:8px">
-            <button class="btn sm" style="flex:1" data-fetch>${ic('download')} 1. Holen</button>
-            <button class="btn sm btn-acc" style="flex:1" data-paste>${ic('clipboard_check')} 2. Einfügen</button>
+            <button class="btn sm" style="flex:1" data-fetch>${ic('download')} ${pending ? 'Nochmal holen' : 'Holen'}</button>
+            <button class="btn sm btn-acc" style="flex:1" data-paste>${ic('clipboard_check')} Einfügen</button>
           </div>
           <textarea class="inp" data-pastebox hidden rows="3" style="margin-top:10px" placeholder="Zwischenablage hier einfügen (lange tippen → Einsetzen)"></textarea>
         </div>` : ''}
