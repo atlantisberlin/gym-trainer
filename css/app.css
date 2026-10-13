@@ -792,7 +792,7 @@ a { color: var(--acc-text); text-decoration: none; }
 .cp-main { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 8px; padding: 16px; }
 .cp-phase { font-size: 13px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; padding: 6px 14px; border-radius: var(--r-pill); background: var(--s2); color: var(--t2); }
 .cp-phase.on { background: var(--acc); color: var(--acc-ink); }
-.cp-clock { font-size: 104px; line-height: 1; margin-top: 6px; }
+.cp-clock { font-size: clamp(60px, 22vw, 104px); line-height: 1; margin-top: 6px; }
 .cp-sub { font-size: 14px; color: var(--t2); font-weight: 500; min-height: 20px; }
 .cp-note { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--t3); }
 .cp-note .ic { width: 15px; height: 15px; }
@@ -807,6 +807,11 @@ a { color: var(--acc-text); text-decoration: none; }
 .wk-bar.now span { color: var(--t1); }
 .wk-goal { position: absolute; left: 0; right: 0; border-top: 1.5px dashed var(--line2); }
 .wk-goal span { position: absolute; right: 0; bottom: 2px; font-size: 10px; color: var(--t2); font-weight: 700; }
+
+.map-list { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin-bottom: 10px; font-size: 12.5px; }
+.plan-row.done { opacity: .6; }
+.plan-row.done .dev-ic { background: var(--acc-dim); color: var(--acc-text); }
+select.inp { appearance: none; -webkit-appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--t2) 50%), linear-gradient(135deg, var(--t2) 50%, transparent 50%); background-position: calc(100% - 20px) 50%, calc(100% - 15px) 50%; background-size: 5px 5px; background-repeat: no-repeat; padding-right: 38px; }
 
 /* utility */
 .mt8 { margin-top: 8px; } .mt16 { margin-top: 16px; } .mb0 { margin-bottom: 0; }

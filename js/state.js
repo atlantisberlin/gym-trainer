@@ -30,8 +30,8 @@ function defaultState() {
     goal: null,            // { targetWeight, targetDate, startWeight, startDate } | null
     cardio: {
       goalMin: 150,          // Wochenziel in Minuten
-      templates: defaultCardioTemplates(),  // {id,name,device,mode:'free'|'interval',targetMin,workSec,restSec,rounds,note}
-      logs: [],              // neueste zuerst: {id,date,device,name,min,km,hr,kcal,rpe}
+      plan: defaultCardioPlan(),  // flexible Wochenliste: {id,sport,mode:'time'|'interval',min,workSec,restSec,rounds,note}
+      logs: [],              // neueste zuerst: {id,date,device(=Sportart),name,planId,min,km,hr,kcal,rpe}
       session: null,         // laufende Einheit: {device,name,templateId,mode,targetMin,workSec,restSec,rounds,note,start,pausedAt,pausedMs}
       pending: null,         // beendet, aber noch nicht gespeichert: {device,name,min,date}
       watch: { enabled: false, startName: 'Gym Cardio Start', stopName: 'Gym Cardio Stopp' },
@@ -39,10 +39,12 @@ function defaultState() {
   };
 }
 
-function defaultCardioTemplates() {
+function defaultCardioPlan() {
   return [
-    { id: uid(), name: 'Zone 2', device: 'laufband', mode: 'free', targetMin: 40, note: 'Locker, Puls ca. 125–140' },
-    { id: uid(), name: 'HIIT', device: 'ergometer', mode: 'interval', workSec: 30, restSec: 90, rounds: 8, note: 'Sprint voll, Pause locker treten' },
+    { id: uid(), sport: 'laufband', mode: 'time', min: 40, note: 'Locker, Puls ca. 125–140' },
+    { id: uid(), sport: 'schwimmen', mode: 'time', min: 30, note: '' },
+    { id: uid(), sport: 'crosstrainer', mode: 'time', min: 30, note: '' },
+    { id: uid(), sport: 'ergometer', mode: 'interval', workSec: 30, restSec: 90, rounds: 8, note: 'Sprint voll, Pause locker treten' },
   ];
 }
 
@@ -61,6 +63,14 @@ export function load() {
       const dc = defaultState().cardio;
       S.cardio = { ...dc, ...S.cardio };
       S.cardio.watch = { ...dc.watch, ...S.cardio.watch };
+      // Alte Vorlagen → flexibler Wochenplan
+      if (S.cardio.templates) {
+        S.cardio.plan = S.cardio.templates.map(t => ({
+          id: t.id, sport: t.device, mode: t.mode === 'interval' ? 'interval' : 'time',
+          min: t.targetMin || 30, workSec: t.workSec, restSec: t.restSec, rounds: t.rounds, note: t.note || '',
+        }));
+        delete S.cardio.templates;
+      }
       S.plans.forEach(p => { if (!p.kind) p.kind = 'gym'; });
       return;
     }
