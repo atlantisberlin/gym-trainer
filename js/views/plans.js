@@ -1,9 +1,9 @@
 // ─── Pläne: Liste, Plan-Editor, Tag-Editor, Übungs-Picker ───────────────────
 import { ic } from '../icons.js';
-import { S, save, getPlan, getEx, allExercises, instantiateTemplate, addCustomExercise, refreshExMap, checkAchievements, ensureWeek } from '../state.js';
+import { S, save, getPlan, getEx, allExercises, instantiateTemplate, addCustomExercise, refreshExMap, checkAchievements } from '../state.js';
 import { TEMPLATES } from '../data/templates.js';
 import { EQUIPMENT } from '../data/exercises.js';
-import { DAYS, DAYS_LONG, MUSCLES, MEAL_SLOTS, uid, esc, todayISO, weekStartISO } from '../util.js';
+import { DAYS, DAYS_LONG, MUSCLES, uid, esc, todayISO } from '../util.js';
 import { openSheet, closeSheet, toast, confirmSheet } from '../components.js';
 import { unavailableBadgeHTML, markButtonHTML, toggleUnavailableExercise } from './altswap.js';
 import { A } from '../actions.js';
@@ -58,7 +58,7 @@ function renderList() {
     <button class="btn full" onclick="A.aiExport()">${ic('download')} Für KI exportieren</button>
     <button class="btn full mt8" onclick="document.getElementById('ai-import-file').click()">${ic('upload')} Plan importieren</button>
     <input type="file" id="ai-import-file" accept=".json,application/json" hidden>
-    <div class="row-sub" style="margin-top:10px">Exportiere den App-Kontext, gib ihn zusammen mit deinem Wunsch einer KI (z. B. Claude oder ChatGPT), importiere die Antwort als neuen Gym-, Zuhause- oder Ernährungsplan.</div>`;
+    <div class="row-sub" style="margin-top:10px">Exportiere den App-Kontext, gib ihn zusammen mit deinem Wunsch einer KI (z. B. Claude oder ChatGPT), importiere die Antwort als neuen Gym- oder Zuhause-Plan.</div>`;
 }
 
 // ── Ebene 2: Plan-Detail ──
@@ -458,25 +458,18 @@ function renameSheet(title, value, onSave) {
 }
 
 // ─── KI-Export/Import ────────────────────────────────────────────────────────
-const AI_INSTRUCTIONS = `Du bekommst hier den kompletten Kontext einer Fitness- und Ernährungs-App ("Gym Trainer 2.0"). Erstelle auf Wunsch des Nutzers einen Trainings- oder Ernährungsplan.
+const AI_INSTRUCTIONS = `Du bekommst hier den kompletten Kontext einer Fitness-App ("Gym Trainer 2.0"). Erstelle auf Wunsch des Nutzers einen Trainingsplan.
 
 WICHTIG: Antworte AUSSCHLIESSLICH mit einem einzigen JSON-Objekt – kein Fließtext davor oder danach, keine Markdown-Codeblock-Zeichen.
 
-Das Objekt braucht immer ein Feld "typ": "gym-plan", "home-plan" oder "meal-plan". Beispiele für alle drei stehen unten in "formate".
+Das Objekt braucht immer ein Feld "typ": "gym-plan" oder "home-plan". Beispiele für beide stehen unten in "formate".
 
 Für "gym-plan"/"home-plan":
 - "weekday": 0=Montag … 6=Sonntag, oder null für keinen festen Tag.
 - "exId" muss exakt eine ID aus "uebungsbibliothek" unten sein (Name als Rückfalloption möglich, ID ist zuverlässiger).
 - "home-plan" darf nur Übungen mit equipment "Körpergewicht" oder einem in "kontext.zuhauseEquipment" gelisteten Equipment verwenden.
 
-Für "meal-plan":
-- Gültige Slot-Namen: shake, breakfast, lunch, dinner, snack.
-- "lebensmittel" in den Zutaten muss ein Name aus "lebensmittel" unten SEIN ODER ein Name aus deinem eigenen "neueLebensmittel"-Array (s.u.).
-- Fehlt ein benötigtes Lebensmittel in der Bibliothek unten, erfinde es nicht einfach nur im Rezept – lege es stattdessen im Top-Level-Feld "neueLebensmittel" an: [{"name":"...","einheit":"g"|"stück","kcal":..,"protein":..,"carbs":..,"fett":..}] (Werte je 100 g bzw. je Stück, realistische Schätzung reicht). Diese Lebensmittel werden beim Import mit genau diesen Nährwerten neu in die Bibliothek aufgenommen.
-- In "wochenplan" referenziert ein Eintrag mit "typ":"rezept" ein Rezept aus "rezepte" oben per Name, ein Eintrag mit "typ":"lebensmittel" ein Lebensmittel aus der Bibliothek ODER aus "neueLebensmittel" per Name. "menge" ist bei Rezepten die Portionenzahl, bei Lebensmitteln die Menge in Gramm (bzw. Stück, falls "einheit":"stück").
-- Falls "kontext.naehrwertZiele" gesetzt ist, plane realistische Mengen dafür ein.
-
-Erfinde keine neuen Übungs-IDs — nutze ausschließlich das, was unten aufgeführt ist. Bei Lebensmitteln darfst du (nur über "neueLebensmittel") neue mit plausiblen Nährwerten ergänzen.`;
+Erfinde keine neuen Übungs-IDs — nutze ausschließlich das, was unten aufgeführt ist.`;
 
 const GYM_PLAN_EXAMPLE = {
   typ: 'gym-plan', name: 'Push Pull Legs',
@@ -496,33 +489,15 @@ const HOME_PLAN_EXAMPLE = {
     ] },
   ],
 };
-const MEAL_PLAN_EXAMPLE = {
-  typ: 'meal-plan',
-  neueLebensmittel: [
-    { name: 'Quinoa (gekocht)', einheit: 'g', kcal: 120, protein: 4.4, carbs: 21, fett: 1.9 },
-  ],
-  rezepte: [
-    { name: 'Hähnchen-Quinoa-Bowl', portionen: 4, zutaten: [
-      { lebensmittel: 'Hähnchenbrust', menge: 400 },
-      { lebensmittel: 'Quinoa (gekocht)', menge: 400 },
-    ] },
-  ],
-  wochenplan: [
-    { weekday: 0, slots: { dinner: [{ typ: 'rezept', name: 'Hähnchen-Quinoa-Bowl', menge: 1 }] } },
-  ],
-};
-
 function buildAiExportPayload() {
   return {
     anleitung: AI_INSTRUCTIONS,
-    formate: { gymPlanBeispiel: GYM_PLAN_EXAMPLE, homePlanBeispiel: HOME_PLAN_EXAMPLE, mealPlanBeispiel: MEAL_PLAN_EXAMPLE },
+    formate: { gymPlanBeispiel: GYM_PLAN_EXAMPLE, homePlanBeispiel: HOME_PLAN_EXAMPLE },
     kontext: {
       ziel: S.goal,
       zuhauseEquipment: S.settings.homeEquipment,
-      naehrwertZiele: S.nutrition.targets,
     },
     uebungsbibliothek: allExercises().map(x => ({ id: x.id, name: x.n, muskeln: x.m, equipment: x.eq, koerpergewicht: !!x.bw, zeitbasiert: !!x.t })),
-    lebensmittel: S.nutrition.foods.map(f => ({ name: f.name, einheit: f.unit, kcal: f.kcal100, protein: f.protein100, carbs: f.carbs100, fett: f.fat100 })),
   };
 }
 
@@ -557,13 +532,12 @@ A.aiImportFile = input => {
     input.value = ''; // erlaubt erneuten Import derselben Datei
     let data;
     try { data = JSON.parse(reader.result); } catch (e) { toast('Datei konnte nicht gelesen werden', 'info_circle'); return; }
-    if (!data || typeof data !== 'object' || !['gym-plan', 'home-plan', 'meal-plan'].includes(data.typ)) {
+    if (!data || typeof data !== 'object' || !['gym-plan', 'home-plan'].includes(data.typ)) {
       toast('Unbekanntes Format', 'info_circle');
       return;
     }
     try {
-      if (data.typ === 'meal-plan') importMealPlan(data);
-      else importGymHomePlan(data);
+      importGymHomePlan(data);
     } catch (e) {
       toast('Import fehlgeschlagen: ungültiges Format', 'info_circle');
     }
@@ -611,94 +585,4 @@ async function importGymHomePlan(data) {
   mode = { view: 'plan', planId: plan.id };
   render();
   toast('Plan importiert');
-}
-
-async function importMealPlan(data) {
-  // Neue Lebensmittel zuerst anlegen – stehen danach für die Namens-Auflösung
-  // von Zutaten/Wochenplan im selben Import zur Verfügung.
-  const srcFoods = Array.isArray(data.neueLebensmittel) ? data.neueLebensmittel : [];
-  const newFoods = [];
-  srcFoods.forEach(f => {
-    const fName = typeof f.name === 'string' && f.name.trim() ? f.name.trim() : null;
-    if (!fName) return;
-    if (S.nutrition.foods.some(x => x.name.toLowerCase() === fName.toLowerCase())) return; // gibt's schon
-    newFoods.push({
-      id: uid(), name: fName, custom: true,
-      unit: f.einheit === 'stück' ? 'stück' : 'g',
-      kcal100: num(f.kcal) || 0, protein100: num(f.protein) || 0, carbs100: num(f.carbs) || 0, fat100: num(f.fett) || 0,
-    });
-  });
-  const foodPool = [...S.nutrition.foods, ...newFoods];
-  const findFood = name => foodPool.find(f => f.name.toLowerCase() === name.toLowerCase());
-
-  const srcRecipes = Array.isArray(data.rezepte) ? data.rezepte : [];
-  let skippedRecipes = 0, skippedIngredients = 0;
-
-  const newRecipes = [];
-  srcRecipes.forEach(r => {
-    const rName = typeof r.name === 'string' && r.name.trim() ? r.name.trim() : null;
-    if (!rName) { skippedRecipes++; return; }
-    const servings = num(r.portionen) > 0 ? Math.round(num(r.portionen)) : 4;
-    const srcIngredients = Array.isArray(r.zutaten) ? r.zutaten : [];
-    const ingredients = [];
-    srcIngredients.forEach(z => {
-      const menge = num(z.menge);
-      const food = typeof z.lebensmittel === 'string' ? findFood(z.lebensmittel) : null;
-      if (!menge || menge <= 0 || !food) { skippedIngredients++; return; }
-      ingredients.push({ foodId: food.id, amount: menge });
-    });
-    if (!ingredients.length) { skippedRecipes++; return; }
-    newRecipes.push({ id: uid(), name: rName, servings, ingredients, instructions: '', freshDaily: false });
-  });
-
-  const byName = new Map(newRecipes.map(r => [r.name.toLowerCase(), r]));
-  const validSlotKeys = new Set(MEAL_SLOTS.map(s => s.key));
-  const srcWeek = Array.isArray(data.wochenplan) ? data.wochenplan : [];
-  let skippedSlots = 0;
-  const weekAdds = [];
-
-  srcWeek.forEach(d => {
-    const wd = Number.isInteger(d.weekday) && d.weekday >= 0 && d.weekday <= 6 ? d.weekday : null;
-    if (wd == null || !d.slots || typeof d.slots !== 'object') return;
-    Object.keys(d.slots).forEach(key => {
-      const arr = Array.isArray(d.slots[key]) ? d.slots[key] : [];
-      if (!validSlotKeys.has(key)) { skippedSlots += arr.length; return; }
-      arr.forEach(en => {
-        const amount = num(en.menge) > 0 ? num(en.menge) : 1;
-        const refName = typeof en.name === 'string' ? en.name.toLowerCase() : '';
-        if (en.typ === 'rezept') {
-          const r = byName.get(refName);
-          if (!r) { skippedSlots++; return; }
-          weekAdds.push({ weekday: wd, slotKey: key, entry: { id: uid(), type: 'recipe', refId: r.id, amount } });
-        } else if (en.typ === 'lebensmittel') {
-          const food = findFood(refName);
-          if (!food) { skippedSlots++; return; }
-          weekAdds.push({ weekday: wd, slotKey: key, entry: { id: uid(), type: 'food', refId: food.id, amount } });
-        } else {
-          skippedSlots++;
-        }
-      });
-    });
-  });
-
-  const parts = [];
-  if (newFoods.length) parts.push(`${newFoods.length} neue Lebensmittel`);
-  parts.push(`${newRecipes.length} Rezept${newRecipes.length === 1 ? '' : 'e'}`);
-  parts.push(`${weekAdds.length} Wochenplan-Eintr${weekAdds.length === 1 ? 'ag' : 'äge'}`);
-  let summary = `${parts.join(', ')} werden hinzugefügt (aktuelle Woche).`;
-  const skippedTotal = skippedRecipes + skippedIngredients + skippedSlots;
-  if (skippedTotal) summary += ` ${skippedTotal} Einträge konnten nicht zugeordnet werden und wurden übersprungen.`;
-
-  if (!(await confirmSheet('Ernährungsplan importieren?', summary, 'Importieren'))) return;
-
-  S.nutrition.foods.push(...newFoods);
-  S.nutrition.recipes.push(...newRecipes);
-  const week = ensureWeek(weekStartISO(todayISO()));
-  weekAdds.forEach(({ weekday, slotKey, entry }) => {
-    const day = week.days.find(x => x.weekday === weekday);
-    if (day) day.slots[slotKey].push(entry);
-  });
-  save();
-  toast('Ernährungsplan importiert');
-  A.tab('nutrition');
 }

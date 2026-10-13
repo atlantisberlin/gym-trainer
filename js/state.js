@@ -1,8 +1,7 @@
 // ─── State: Datenmodell v5, Persistenz, Migration, Abfragen ────────────────
 import { LIBRARY } from './data/exercises.js';
 import { TEMPLATES } from './data/templates.js';
-import { FOODS } from './data/foods.js';
-import { uid, todayISO, toISO, fromISO, addDays, weekdayIdx, weekStartISO, e1rm, stepFor, MEAL_SLOTS } from './util.js';
+import { uid, todayISO, toISO, fromISO, addDays, weekdayIdx, e1rm, stepFor } from './util.js';
 
 const KEY = 'gymtrainer_v5';
 const OLD_KEYS = ['gymtrainer_v4', 'gymtrainer_v3'];
@@ -29,21 +28,23 @@ function defaultState() {
     legacyCount: 0,        // Workouts aus alter App, die nicht als Detail-Log vorliegen
     session: null,         // laufendes Training
     goal: null,            // { targetWeight, targetDate, startWeight, startDate } | null
-    nutrition: {
-      targets: { kcal: null, protein: null, carbs: null, fat: null },
-      foods: FOODS.map(f => ({ ...f })),  // Deep-Copy – sonst würde Mutation das Import-Array verändern
-      recipes: [],        // {id,name,servings,ingredients:[{foodId,amount}],instructions,freshDaily}
-      weeks: {},          // { [weekStartISO]: { days: [{weekday,slots:{shake:[],...}} × 7] } } – unabhängige, datierte Wochen
-      eaten: {},          // { [dateISO]: { [entryId]: true } }
-      extra: {},          // { [dateISO]: [{id,type,refId,amount}] } – Spontan-Einträge pro Datum
-      prepped: {},        // { [recipeId]: true } – "diese Woche vorbereitet"
-      shopChecked: {},    // { [weekStartISO]: { [foodId]: true } } – Einkaufsliste abgehakt, pro Woche
+    cardio: {
+      goalMin: 150,          // Wochenziel in Minuten
+      templates: defaultCardioTemplates(),  // {id,name,device,mode:'free'|'interval',targetMin,workSec,restSec,rounds,note}
+      logs: [],              // neueste zuerst: {id,date,device,name,min,km,hr,kcal,rpe}
+      session: null,         // laufende Einheit: {device,name,templateId,mode,targetMin,workSec,restSec,rounds,note,start,pausedAt,pausedMs}
+      pending: null,         // beendet, aber noch nicht gespeichert: {device,name,min,date}
+      watch: { enabled: false, startName: 'Gym Cardio Start', importName: 'Gym Cardio Import' },
     },
   };
 }
 
-function emptySlots() { return Object.fromEntries(MEAL_SLOTS.map(s => [s.key, []])); }
-function emptyWeekDays() { return Array.from({ length: 7 }, (_, wd) => ({ weekday: wd, slots: emptySlots() })); }
+function defaultCardioTemplates() {
+  return [
+    { id: uid(), name: 'Zone 2', device: 'laufband', mode: 'free', targetMin: 40, note: 'Locker, Puls ca. 125–140' },
+    { id: uid(), name: 'HIIT', device: 'ergometer', mode: 'interval', workSec: 30, restSec: 90, rounds: 8, note: 'Sprint voll, Pause locker treten' },
+  ];
+}
 
 export let S = defaultState();
 
@@ -57,9 +58,9 @@ export function load() {
     if (raw) {
       S = { ...defaultState(), ...JSON.parse(raw) };
       S.settings = { ...defaultState().settings, ...S.settings };
-      S.nutrition = { ...defaultState().nutrition, ...S.nutrition };
-      S.nutrition.targets = { ...defaultState().nutrition.targets, ...S.nutrition.targets };
-      migrateNutritionWeeks();
+      const dc = defaultState().cardio;
+      S.cardio = { ...dc, ...S.cardio };
+      S.cardio.watch = { ...dc.watch, ...S.cardio.watch };
       S.plans.forEach(p => { if (!p.kind) p.kind = 'gym'; });
       return;
     }
@@ -72,41 +73,6 @@ export function load() {
       }
     }
   } catch (e) { S = defaultState(); }
-}
-
-// Alte Ernährungs-Struktur (eine sich wiederholende Wochenvorlage + einmalig
-// geseedetes Tagebuch) auf mehrere unabhängige, datierte Wochen ummodeln.
-// Eigenes try/catch: ein Fehler hier darf nicht den GESAMTEN State über
-// load()s äußeres catch zurücksetzen (Logs, PRs, Trainingspläne wären sonst
-// mit betroffen). Prüft bewusst auf Vorhandensein des ALTEN Keys (nicht auf
-// Fehlen des neuen) und löscht ihn danach – das macht die Prüfung selbst
-// über mehrfaches load() hinweg idempotent.
-function migrateNutritionWeeks() {
-  try {
-    if (S.nutrition.plan) {
-      const ws = weekStartISO(todayISO());
-      S.nutrition.weeks = { [ws]: { days: S.nutrition.plan.days.map(d => ({
-        weekday: d.weekday,
-        slots: Object.fromEntries(MEAL_SLOTS.map(s => [s.key, (d.slots[s.key] || []).map(e => ({ ...e, id: uid() }))])),
-      })) } };
-      delete S.nutrition.plan;
-    }
-    if (S.nutrition.diary) {
-      S.nutrition.extra = {};
-      Object.entries(S.nutrition.diary).forEach(([date, day]) => {
-        S.nutrition.extra[date] = (day.extra || []).map(e => ({ id: uid(), type: e.type, refId: e.refId, amount: e.amount }));
-      });
-      delete S.nutrition.diary;
-    }
-    S.nutrition.eaten = S.nutrition.eaten || {};
-    // Alte Form war flach ({foodId: true}); neue Form ist pro Woche verschachtelt.
-    // Lässt sich nicht sicher ummappen (welche Woche?) – einmalig zurücksetzen.
-    if (S.nutrition.shopChecked && Object.values(S.nutrition.shopChecked).some(v => v === true)) {
-      S.nutrition.shopChecked = {};
-    }
-  } catch (e) {
-    S.nutrition.weeks = S.nutrition.weeks || {};
-  }
 }
 
 // ─── Migration aus gymtrainer_v3/v4 ─────────────────────────────────────────
@@ -316,162 +282,10 @@ export function logBodyWeight(w, date = todayISO()) {
   save();
 }
 
-// ─── Ernährung ──────────────────────────────────────────────────────────────
-export function getFood(id) { return S.nutrition.foods.find(f => f.id === id) || null; }
-export function getRecipe(id) { return S.nutrition.recipes.find(r => r.id === id) || null; }
-
-// Makros pro Portion (Zutaten-Summe ÷ Portionenzahl)
-export function recipeMacros(recipe) {
-  const t = { kcal: 0, protein: 0, carbs: 0, fat: 0 };
-  for (const ing of recipe.ingredients) {
-    const food = getFood(ing.foodId);
-    if (!food) continue; // gelöschtes Lebensmittel – einfach überspringen
-    const f = food.unit === 'stück' ? ing.amount : ing.amount / 100;
-    t.kcal += food.kcal100 * f;
-    t.protein += food.protein100 * f;
-    t.carbs += food.carbs100 * f;
-    t.fat += food.fat100 * f;
-  }
-  const s = recipe.servings || 1;
-  return { kcal: t.kcal / s, protein: t.protein / s, carbs: t.carbs / s, fat: t.fat / s };
-}
-
-// Makros eines Tagebuch-/Plan-Eintrags {type:'recipe'|'food', refId, amount}
-export function entryMacros(entry) {
-  if (entry.type === 'recipe') {
-    const r = getRecipe(entry.refId);
-    if (!r) return { kcal: 0, protein: 0, carbs: 0, fat: 0 };
-    const per = recipeMacros(r);
-    return {
-      kcal: per.kcal * entry.amount, protein: per.protein * entry.amount,
-      carbs: per.carbs * entry.amount, fat: per.fat * entry.amount,
-    };
-  }
-  const food = getFood(entry.refId);
-  if (!food) return { kcal: 0, protein: 0, carbs: 0, fat: 0 };
-  const f = food.unit === 'stück' ? entry.amount : entry.amount / 100;
-  return { kcal: food.kcal100 * f, protein: food.protein100 * f, carbs: food.carbs100 * f, fat: food.fat100 * f };
-}
-
-// ── Wochen: lesen vs. schreiben getrennt, damit bloßes Ansehen einer (auch
-// leeren) Woche sie nie dauerhaft materialisiert (sonst genau der Stale-/
-// Aufbläh-Bug, der die alte Tagebuch-Logik schon hatte, nur eine Ebene höher) ──
-export function weekDayFor(ws, wd) {
-  const week = S.nutrition.weeks[ws];
-  return (week && week.days.find(d => d.weekday === wd)) || { weekday: wd, slots: emptySlots() };
-}
-
-// Nur aus Aktionen aufrufen, die wirklich Inhalt in die Woche schreiben wollen.
-export function ensureWeek(ws) {
-  if (!S.nutrition.weeks[ws]) S.nutrition.weeks[ws] = { days: emptyWeekDays() };
-  return S.nutrition.weeks[ws];
-}
-
-// Live-Einträge für ein Datum – kein Snapshot, spiegelt immer den aktuellen
-// Plan der jeweiligen Woche wider.
-export function dayEntries(dateISO) {
-  const ws = weekStartISO(dateISO);
-  const day = weekDayFor(ws, weekdayIdx(fromISO(dateISO)));
-  const eatenMap = S.nutrition.eaten[dateISO] || {};
-  const slotEntries = MEAL_SLOTS.flatMap(s => day.slots[s.key].map(e => ({ ...e, slotKey: s.key, eaten: !!eatenMap[e.id] })));
-  const extraEntries = (S.nutrition.extra[dateISO] || []).map(e => ({ ...e, slotKey: 'extra', eaten: !!eatenMap[e.id] }));
-  return [...slotEntries, ...extraEntries];
-}
-
-export function dayMacros(dateISO, { onlyEaten = false } = {}) {
-  const t = { kcal: 0, protein: 0, carbs: 0, fat: 0 };
-  for (const e of dayEntries(dateISO)) {
-    if (onlyEaten && !e.eaten) continue;
-    const m = entryMacros(e);
-    t.kcal += m.kcal; t.protein += m.protein; t.carbs += m.carbs; t.fat += m.fat;
-  }
-  return t;
-}
-
-export function toggleEaten(dateISO, entryId) {
-  const map = S.nutrition.eaten[dateISO] || (S.nutrition.eaten[dateISO] = {});
-  if (map[entryId]) delete map[entryId]; else map[entryId] = true;
-}
-
-export function removeEntry(dateISO, slotKey, entryId) {
-  if (slotKey === 'extra') {
-    S.nutrition.extra[dateISO] = (S.nutrition.extra[dateISO] || []).filter(e => e.id !== entryId);
-    return;
-  }
-  const day = weekDayFor(weekStartISO(dateISO), weekdayIdx(fromISO(dateISO)));
-  day.slots[slotKey] = day.slots[slotKey].filter(e => e.id !== entryId);
-}
-
-// Einkaufsliste für eine bestimmte Woche. Enthält AUCH Zutaten von als
-// "täglich frisch" markierten Rezepten (die werden nur von recipeCookPlan
-// ausgenommen, nicht vom Einkauf – die Zutaten müssen trotzdem besorgt werden).
-export function weekShoppingList(ws) {
-  const week = S.nutrition.weeks[ws];
-  const servingsNeeded = {}; // recipeId -> Summe der geplanten Portionen
-  const rawFoodTotals = {};  // foodId -> Summe der Menge (nicht Batch-skaliert)
-  if (week) {
-    for (const day of week.days) {
-      for (const s of MEAL_SLOTS) {
-        for (const entry of day.slots[s.key]) {
-          if (entry.type === 'recipe') {
-            servingsNeeded[entry.refId] = (servingsNeeded[entry.refId] || 0) + entry.amount;
-          } else {
-            rawFoodTotals[entry.refId] = (rawFoodTotals[entry.refId] || 0) + entry.amount;
-          }
-        }
-      }
-    }
-  }
-  const merged = {};
-  for (const [recipeId, needed] of Object.entries(servingsNeeded)) {
-    const recipe = getRecipe(recipeId);
-    if (!recipe) continue;
-    const batches = Math.ceil(needed / (recipe.servings || 1));
-    for (const ing of recipe.ingredients) {
-      merged[ing.foodId] = (merged[ing.foodId] || 0) + ing.amount * batches;
-    }
-  }
-  for (const [foodId, amt] of Object.entries(rawFoodTotals)) {
-    merged[foodId] = (merged[foodId] || 0) + amt;
-  }
-  return Object.entries(merged)
-    .map(([foodId, amount]) => {
-      const f = getFood(foodId);
-      return f ? { foodId, foodName: f.name, totalAmount: Math.round(amount), unit: f.unit } : null;
-    })
-    .filter(Boolean)
-    .sort((a, b) => a.foodName.localeCompare(b.foodName));
-}
-
-// Wie oft wird ein Rezept in dieser Woche geplant benötigt, und wie oft muss
-// dafür gekocht werden? "Täglich frisch"-Rezepte werden bewusst ausgenommen –
-// die brauchen keine Portionen-/Batch-Vorbereitung.
-export function recipeCookPlan(ws) {
-  const week = S.nutrition.weeks[ws];
-  if (!week) return [];
-  const servingsNeeded = {};
-  for (const day of week.days) {
-    for (const s of MEAL_SLOTS) {
-      for (const entry of day.slots[s.key]) {
-        if (entry.type === 'recipe') servingsNeeded[entry.refId] = (servingsNeeded[entry.refId] || 0) + entry.amount;
-      }
-    }
-  }
-  return Object.entries(servingsNeeded).map(([recipeId, needed]) => {
-    const recipe = getRecipe(recipeId);
-    if (!recipe || recipe.freshDaily) return null;
-    const servings = recipe.servings || 1;
-    const batches = Math.ceil(needed / servings);
-    return { recipeId, name: recipe.name, needed, batches, yieldServings: batches * servings };
-  }).filter(Boolean);
-}
-
-// Alle Wochen ab der aktuellen, für die es etwas einzukaufen gibt (sortiert).
-export function plannedWeeks() {
-  const start = weekStartISO(todayISO());
-  return Object.keys(S.nutrition.weeks)
-    .filter(ws => ws >= start && weekShoppingList(ws).length > 0)
-    .sort();
+// ─── Cardio ─────────────────────────────────────────────────────────────────
+// Minuten pro Woche (Montag-ISO → Summe)
+export function cardioMinutesSince(fromIso) {
+  return S.cardio.logs.filter(l => l.date >= fromIso).reduce((n, l) => n + (l.min || 0), 0);
 }
 
 export function totalWorkouts() {
