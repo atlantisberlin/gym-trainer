@@ -762,63 +762,6 @@ a { color: var(--acc-text); text-decoration: none; }
   display: flex; align-items: center; justify-content: center;
 }
 
-/* ── Ernährung: Makro-Ringe, Mahlzeiten, Wochenraster, Zutaten, Einkaufen ──── */
-.mring-row { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
-.mring { display: flex; flex-direction: column; align-items: center; gap: 6px; }
-.mring svg { width: 54px; height: 54px; }
-.mring b { font-size: 12px; font-weight: 700; color: var(--t1); }
-.mring span { font-size: 9.5px; color: var(--t3); font-weight: 650; text-transform: uppercase; letter-spacing: .03em; }
-
-.slot-lbl { font-size: 10.5px; color: var(--t3); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin: 14px 0 6px; }
-.slot-lbl:first-child { margin-top: 0; }
-
-.meal-row { display: flex; align-items: center; gap: 11px; background: var(--s1); border: 1px solid var(--line); border-radius: var(--r-card); padding: 12px 13px; margin-bottom: 8px; cursor: pointer; width: 100%; touch-action: manipulation; }
-.meal-check { width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--line2); display: flex; align-items: center; justify-content: center; color: transparent; flex-shrink: 0; }
-.meal-check .ic { width: 15px; height: 15px; }
-.meal-row.checked .meal-check { background: var(--acc); border-color: var(--acc); color: var(--acc-ink); }
-.meal-row.checked .meal-name { text-decoration: line-through; color: var(--t3); }
-.meal-main { flex: 1; min-width: 0; }
-.meal-name { font-size: 13.5px; font-weight: 650; }
-.meal-macro { font-size: 11px; color: var(--t3); margin-top: 2px; }
-.meal-kcal { font-size: 13px; font-weight: 700; color: var(--t2); flex-shrink: 0; }
-
-.wk-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 5px; margin-bottom: 13px; }
-.wk-day { background: var(--s1); border: 1px solid var(--line); border-radius: 10px; padding: 7px 3px; text-align: center; }
-.wk-day.full { border-color: var(--acc-text); background: var(--acc-dim); }
-.wk-day-lbl { font-size: 9.5px; color: var(--t3); font-weight: 700; text-transform: uppercase; margin-bottom: 5px; }
-.wk-day-dots { display: flex; justify-content: center; gap: 2px; flex-wrap: wrap; }
-.wk-day-dots span { width: 5px; height: 5px; border-radius: 50%; background: var(--s3); display: inline-block; }
-.wk-day.full .wk-day-dots span { background: var(--acc-text); }
-
-.cook-row { background: var(--s1); border: 1px solid var(--line); border-radius: var(--r-card); padding: 13px 14px; margin-bottom: 9px; }
-.cook-head { display: flex; align-items: center; gap: 10px; }
-.cook-name { font-size: 14px; font-weight: 650; flex: 1; text-align: left; padding: 0; cursor: pointer; }
-.cook-sub { font-size: 12px; color: var(--t2); margin-top: 6px; }
-.cook-prepped { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 12.5px; color: var(--t2); cursor: pointer; width: 100%; padding: 0; text-align: left; }
-.cook-prepped .box { width: 19px; height: 19px; border-radius: 5px; border: 1.5px solid var(--line2); display: flex; align-items: center; justify-content: center; color: transparent; flex-shrink: 0; }
-.cook-prepped .box .ic { width: 12px; height: 12px; }
-.cook-prepped.on .box { background: var(--acc); border-color: var(--acc); color: var(--acc-ink); }
-
-.ing-row { display: flex; align-items: center; gap: 9px; background: var(--s1); border: 1px solid var(--line); border-radius: 12px; padding: 10px 11px; margin-bottom: 8px; }
-.ing-main { flex: 1; min-width: 0; }
-.ing-name { font-size: 13px; font-weight: 650; }
-.ing-macro { font-size: 11px; color: var(--t3); margin-top: 1px; }
-.ing-stp { display: flex; align-items: center; background: var(--s2); border: 1px solid var(--line); border-radius: var(--r-pill); flex-shrink: 0; }
-.ing-stp button { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; color: var(--t2); }
-.ing-stp button .ic { width: 13px; height: 13px; }
-.ing-stp b { min-width: 46px; text-align: center; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.ing-rm { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--t3); flex-shrink: 0; }
-.ing-rm .ic { width: 14px; height: 14px; }
-
-.shop-row { display: flex; align-items: center; gap: 11px; background: var(--s1); border: 1px solid var(--line); border-radius: 12px; padding: 12px 13px; margin-bottom: 8px; cursor: pointer; width: 100%; text-align: left; }
-.shop-row.checked { opacity: .45; }
-.shop-row.checked .shop-name { text-decoration: line-through; }
-.shop-check { width: 23px; height: 23px; border-radius: 6px; border: 1.5px solid var(--line2); display: flex; align-items: center; justify-content: center; color: transparent; flex-shrink: 0; }
-.shop-check .ic { width: 14px; height: 14px; }
-.shop-row.checked .shop-check { background: var(--acc); border-color: var(--acc); color: var(--acc-ink); }
-.shop-name { font-size: 13.5px; font-weight: 600; flex: 1; }
-.shop-amt { font-size: 12.5px; color: var(--t3); font-weight: 650; }
-
 /* utility */
 .mt8 { margin-top: 8px; } .mt16 { margin-top: 16px; } .mb0 { margin-bottom: 0; }
 .tc { text-align: center; } .t2 { color: var(--t2); } .t3 { color: var(--t3); }

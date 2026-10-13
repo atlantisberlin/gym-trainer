@@ -5,7 +5,6 @@ import { S, load, save, refreshExMap } from './state.js';
 import { fmtDateLong } from './util.js';
 import * as home from './views/home.js';
 import * as plans from './views/plans.js';
-import * as nutrition from './views/nutrition.js';
 import * as stats from './views/stats.js';
 import * as player from './views/player.js';
 import * as settings from './views/settings.js';
@@ -13,11 +12,10 @@ import * as settings from './views/settings.js';
 const TABS = [
   { id: 'home',      label: 'Heute',       icon: 'barbell',        title: 'Heute' },
   { id: 'plans',     label: 'Pläne',       icon: 'clipboard_list', title: 'Pläne' },
-  { id: 'nutrition', label: 'Ernährung',   icon: 'apple',          title: 'Ernährung' },
   { id: 'stats',     label: 'Fortschritt', icon: 'chart_line',     title: 'Fortschritt' },
 ];
 
-const VIEWS = { home, plans, nutrition, stats };
+const VIEWS = { home, plans, stats };
 let current = 'home';
 
 export function switchTab(id) {
