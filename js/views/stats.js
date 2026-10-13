@@ -5,19 +5,21 @@ import { toISO, todayISO, addDays, fmtVol, fmtKg, fmtDate, esc, MUSCLES } from '
 import { lineChart, wireCharts } from '../charts.js';
 import { toast } from '../components.js';
 import { historyHTML } from './history.js';
+import { statsHTML as cardioStatsHTML } from './cardio.js';
 import { A } from '../actions.js';
 
 let selectedEx = null;
-let panel = 'stats'; // ephemer: 'stats' | 'verlauf'
+let panel = 'stats'; // ephemer: 'stats' | 'cardio' | 'verlauf'
 
 export function render() {
   const el = document.getElementById('v-stats');
   const seg = `<div class="seg">
-    <button class="${panel === 'stats' ? 'on' : ''}" onclick="A.statsPanel('stats')">${ic('chart_line')} Statistiken</button>
+    <button class="${panel === 'stats' ? 'on' : ''}" onclick="A.statsPanel('stats')">${ic('barbell')} Kraft</button>
+    <button class="${panel === 'cardio' ? 'on' : ''}" onclick="A.statsPanel('cardio')">${ic('heartbeat')} Cardio</button>
     <button class="${panel === 'verlauf' ? 'on' : ''}" onclick="A.statsPanel('verlauf')">${ic('history')} Verlauf</button>
   </div>`;
-  el.innerHTML = seg + (panel === 'verlauf' ? historyHTML() : statsHTML());
-  if (panel !== 'verlauf') wireCharts(el);
+  el.innerHTML = seg + (panel === 'verlauf' ? historyHTML() : panel === 'cardio' ? cardioStatsHTML() : statsHTML());
+  if (panel === 'stats') wireCharts(el);
 }
 
 A.statsPanel = p => { panel = p; render(); };

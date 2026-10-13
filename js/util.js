@@ -5,14 +5,6 @@ export const DAYS_LONG = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freit
 
 export const MUSCLES = ['Brust', 'Schultern', 'Rücken', 'Lats', 'Bizeps', 'Trizeps', 'Core', 'Quadrizeps', 'Beinbeuger', 'Gesäß', 'Waden', 'Unterarme'];
 
-export const MEAL_SLOTS = [
-  { key: 'shake', label: 'Shake' },
-  { key: 'breakfast', label: 'Frühstück' },
-  { key: 'lunch', label: 'Mittag' },
-  { key: 'dinner', label: 'Abendbrot' },
-  { key: 'snack', label: 'Snacks' },
-];
-
 export function uid() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
@@ -44,12 +36,6 @@ export function daysBetweenISO(aIso, bIso) {
 // Wochentag-Index: Mo=0 … So=6
 export function weekdayIdx(d = new Date()) {
   return (d.getDay() + 6) % 7;
-}
-
-// Montag der Woche, die dieses ISO-Datum enthält
-export function weekStartISO(dateISO) {
-  const d = fromISO(dateISO);
-  return toISO(addDays(d, -weekdayIdx(d)));
 }
 
 export function addDays(d, n) {
