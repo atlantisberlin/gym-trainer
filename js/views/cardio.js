@@ -1,19 +1,24 @@
-// ─── Cardio: Wochenziel, Schnellstart, Vorlagen, Live-Timer, Apple-Watch-Kurzbefehle ──
+// ─── Cardio: Wochenziel, flexibler Wochenplan, Countdown-Timer, Apple-Watch-Kurzbefehle ──
 import { ic } from '../icons.js';
 import { S, save, cardioMinutesSince } from '../state.js';
-import { uid, esc, todayISO, toISO, fromISO, addDays, weekdayIdx, fmtDate, fmtClock } from '../util.js';
+import { uid, esc, todayISO, toISO, fromISO, addDays, weekdayIdx, fmtDate, fmtClock, DAYS } from '../util.js';
 import { openSheet, closeSheet, toast, confirmSheet, vibrate } from '../components.js';
 import { A } from '../actions.js';
 
-export const DEVICES = [
-  { id: 'laufband',     label: 'Laufband',     icon: 'run' },
-  { id: 'ergometer',    label: 'Ergometer',    icon: 'bike' },
-  { id: 'crosstrainer', label: 'Crosstrainer', icon: 'walk' },
-  { id: 'rudern',       label: 'Rudern',       icon: 'rowing' },
-  { id: 'stepper',      label: 'Stepper',      icon: 'stairs_up' },
-  { id: 'draussen',     label: 'Draußen',      icon: 'route' },
+// label wird auch an den Start-/Stopp-Kurzbefehl übergeben, watch = passende Trainingsart auf der Uhr
+export const SPORTS = [
+  { id: 'laufband',     label: 'Laufband',      icon: 'run',       watch: 'Indoor-Laufen' },
+  { id: 'draussen',     label: 'Laufen',        icon: 'route',     watch: 'Outdoor-Laufen' },
+  { id: 'gehen',        label: 'Gehen',         icon: 'walk',      watch: 'Outdoor-Gehen' },
+  { id: 'ergometer',    label: 'Ergometer',     icon: 'bike',      watch: 'Indoor-Radfahren' },
+  { id: 'rad',          label: 'Radfahren',     icon: 'bike',      watch: 'Outdoor-Radfahren' },
+  { id: 'crosstrainer', label: 'Crosstrainer',  icon: 'walk',      watch: 'Crosstrainer' },
+  { id: 'rudern',       label: 'Rudern',        icon: 'rowing',    watch: 'Rudergerät' },
+  { id: 'stepper',      label: 'Stepper',       icon: 'stairs_up', watch: 'Stepper' },
+  { id: 'schwimmen',    label: 'Schwimmen',     icon: 'swimming',  watch: 'Beckenschwimmen' },
 ];
-const dev = id => DEVICES.find(d => d.id === id) || DEVICES[0];
+const dev = id => SPORTS.find(d => d.id === id) || SPORTS[0];
+const PACE_SPORTS = ['laufband', 'draussen', 'gehen'];
 
 const fmtNum = (v, digits = 1) => v == null ? '' : String(Math.round(v * 10 ** digits) / 10 ** digits).replace('.', ',');
 const mondayISO = () => toISO(addDays(new Date(), -weekdayIdx()));
@@ -25,7 +30,27 @@ function fmtPace(min, km) {
   return `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
 }
 
+const sportSelect = (id, selected) => `
+  <select class="inp" id="${id}">${SPORTS.map(x => `<option value="${x.id}"${x.id === selected ? ' selected' : ''}>${x.label}</option>`).join('')}</select>`;
+
+// Dauer einer Plan-Einheit in Minuten
+function itemMin(it) {
+  return it.mode === 'interval' ? Math.round((it.rounds * it.workSec + (it.rounds - 1) * it.restSec) / 60) : it.min;
+}
+function itemTitle(it) {
+  return it.mode === 'interval' ? `Intervall · ${dev(it.sport).label}` : `${it.min} min ${dev(it.sport).label}`;
+}
+function itemSub(it) {
+  const parts = [];
+  if (it.mode === 'interval') parts.push(`${it.rounds} × ${it.workSec} s / ${it.restSec} s · ${itemMin(it)} min`);
+  if (it.note) parts.push(esc(it.note));
+  return parts.join(' · ');
+}
+
 // ═══ Tab ════════════════════════════════════════════════════════════════════
+let quickSport = 'laufband';
+let quickMin = 30;
+
 export function render() {
   const el = document.getElementById('v-cardio');
   const c = S.cardio;
@@ -48,25 +73,21 @@ export function render() {
   }
 
   html.push(goalCardHTML());
+  html.push(planHTML());
 
-  html.push(`<div class="slbl">Schnellstart</div>
-    <div class="dev-grid">${DEVICES.map(d => `
-      <button class="dev-tile" onclick="A.cardioQuick('${d.id}')">${ic(d.icon)}<b>${d.label}</b></button>`).join('')}
+  html.push(`<div class="slbl">Spontan trainieren</div>
+    <div class="card">
+      <div class="field"><label for="cq-sport">Sportart</label>${sportSelect('cq-sport', quickSport)}</div>
+      <div class="mstp-row" style="padding-top:0">
+        <span class="mstp-lbl">Dauer</span>
+        <div class="mstp">
+          <button onclick="A.cardioQuickMin(-5)" aria-label="Weniger">${ic('minus')}</button>
+          <b id="cq-min">${quickMin ? quickMin + ' min' : 'offen'}</b>
+          <button onclick="A.cardioQuickMin(5)" aria-label="Mehr">${ic('plus')}</button>
+        </div>
+      </div>
+      <button class="btn btn-acc full" onclick="A.cardioQuick()">${ic('player_play')} Starten</button>
     </div>`);
-
-  html.push(`<div class="slbl">Meine Vorlagen</div>`);
-  html.push(c.templates.map(t => `
-    <div class="row" style="padding:12px 12px 12px 14px">
-      <button class="row-main flex" style="gap:12px;text-align:left" onclick="A.cardioStartTpl('${t.id}')">
-        <span class="dev-ic">${ic(t.mode === 'interval' ? 'bolt' : dev(t.device).icon)}</span>
-        <span class="row-main">
-          <span class="row-title" style="display:block">${esc(t.name)} · ${dev(t.device).label}</span>
-          <span class="row-sub" style="display:block">${tplSummary(t)}</span>
-        </span>
-      </button>
-      <button class="iconbtn" style="width:36px;height:36px" onclick="A.cardioEditTpl('${t.id}')" aria-label="Vorlage bearbeiten">${ic('pencil')}</button>
-    </div>`).join(''));
-  html.push(`<button class="btn full" onclick="A.cardioEditTpl()">${ic('plus')} Neue Vorlage</button>`);
 
   html.push(`<div class="slbl">Zuletzt</div>`);
   if (c.logs.length) html.push(c.logs.slice(0, 3).map(logRowHTML).join(''));
@@ -84,6 +105,43 @@ export function render() {
     </button>`);
 
   el.innerHTML = html.join('');
+  const sel = el.querySelector('#cq-sport');
+  if (sel) sel.addEventListener('change', () => { quickSport = sel.value; });
+}
+
+// Welche Plan-Einheiten sind diese Woche schon erledigt? (planId → Log)
+function doneThisWeek() {
+  const monday = mondayISO();
+  const map = {};
+  for (const l of S.cardio.logs) if (l.planId && l.date >= monday && !map[l.planId]) map[l.planId] = l;
+  return map;
+}
+
+function planHTML() {
+  const plan = S.cardio.plan;
+  const done = doneThisWeek();
+  const nDone = plan.filter(it => done[it.id]).length;
+  const planMin = plan.reduce((n, it) => n + itemMin(it), 0);
+  const goal = S.cardio.goalMin || 150;
+  const rows = plan.map(it => {
+    const l = done[it.id];
+    return `
+    <div class="row plan-row${l ? ' done' : ''}">
+      <button class="row-main flex" style="gap:12px;text-align:left" onclick="A.cardioStartPlan('${it.id}')" ${l ? 'aria-label="Erledigt – nochmal starten"' : ''}>
+        <span class="dev-ic">${ic(l ? 'check' : it.mode === 'interval' ? 'bolt' : dev(it.sport).icon)}</span>
+        <span class="row-main">
+          <span class="row-title" style="display:block">${itemTitle(it)}</span>
+          <span class="row-sub" style="display:block">${l ? `Erledigt ${DAYS[weekdayIdx(fromISO(l.date))]} · ${l.min} min` : (itemSub(it) || 'Tippen zum Starten')}</span>
+        </span>
+      </button>
+      <button class="iconbtn" style="width:36px;height:36px" onclick="A.cardioEditPlan('${it.id}')" aria-label="Einheit bearbeiten">${ic('pencil')}</button>
+    </div>`;
+  }).join('');
+  return `
+    <div class="slbl">Plan diese Woche · ${nDone}/${plan.length}</div>
+    ${plan.length ? rows : `<div class="empty">Noch keine Einheiten geplant.</div>`}
+    ${plan.length && planMin < goal ? `<div class="field-hint" style="margin:-2px 0 10px">Plan ergibt ${planMin} min – für dein Wochenziel fehlen noch ${goal - planMin} min.</div>` : ''}
+    <button class="btn full" onclick="A.cardioEditPlan()">${ic('plus')} Einheit zum Plan</button>`;
 }
 
 function goalCardHTML() {
@@ -117,22 +175,12 @@ function goalCardHTML() {
     </div>`;
 }
 
-function tplSummary(t) {
-  const parts = [];
-  if (t.mode === 'interval') {
-    parts.push(`${t.rounds} × ${t.workSec} s / ${t.restSec} s`);
-    parts.push(`${Math.round((t.rounds * t.workSec + (t.rounds - 1) * t.restSec) / 60)} min`);
-  } else if (t.targetMin) parts.push(`${t.targetMin} min`);
-  if (t.note) parts.push(esc(t.note));
-  return parts.join(' · ') || 'Freies Training';
-}
-
 function logRowHTML(l) {
   const sub = [fmtDate(l.date), `${l.min} min`];
   if (l.km) sub.push(`${fmtNum(l.km, 2)} km`);
   if (l.hr) sub.push(`Ø ${l.hr} bpm`);
   if (l.kcal) sub.push(`${l.kcal} kcal`);
-  const pace = (l.device === 'laufband' || l.device === 'draussen') ? fmtPace(l.min, l.km) : '';
+  const pace = PACE_SPORTS.includes(l.device) ? fmtPace(l.min, l.km) : '';
   return `
     <div class="row" style="cursor:default">
       <span class="dev-ic">${ic(dev(l.device).icon)}</span>
@@ -171,25 +219,30 @@ A.cardioGoal = () => {
   });
 };
 
-// ═══ Vorlagen ═══════════════════════════════════════════════════════════════
-A.cardioEditTpl = id => {
-  const existing = id && S.cardio.templates.find(t => t.id === id);
-  const t = existing ? { ...existing } : { name: '', device: 'laufband', mode: 'free', targetMin: 30, workSec: 30, restSec: 90, rounds: 8, note: '' };
+// ═══ Wochenplan bearbeiten ══════════════════════════════════════════════════
+A.cardioEditPlan = id => {
+  const existing = id && S.cardio.plan.find(t => t.id === id);
+  const t = existing ? { ...existing } : { sport: 'laufband', mode: 'time', min: 30, workSec: 30, restSec: 90, rounds: 8, note: '' };
+  t.workSec = t.workSec || 30; t.restSec = t.restSec || 90; t.rounds = t.rounds || 8; t.min = t.min || 30;
   openSheet({
-    title: existing ? 'Vorlage bearbeiten' : 'Neue Vorlage',
+    title: existing ? 'Einheit bearbeiten' : 'Einheit zum Plan',
     body: `
-      <div class="field"><label for="ct-name">Name</label><input class="inp" id="ct-name" value="${esc(t.name)}" placeholder="z. B. Zone 2"></div>
-      <div class="field"><label>Gerät</label><div class="pills" style="flex-wrap:wrap">
-        ${DEVICES.map(d => `<button class="pill${d.id === t.device ? ' on' : ''}" data-dev="${d.id}">${d.label}</button>`).join('')}
-      </div></div>
+      <div class="field"><label for="cp-sport">Sportart</label>${sportSelect('cp-sport', t.sport)}</div>
       <div class="seg" style="margin-bottom:14px">
-        <button data-mode="free" class="${t.mode === 'free' ? 'on' : ''}">${ic('stopwatch')} Dauer</button>
+        <button data-mode="time" class="${t.mode === 'time' ? 'on' : ''}">${ic('stopwatch')} Minuten</button>
         <button data-mode="interval" class="${t.mode === 'interval' ? 'on' : ''}">${ic('bolt')} Intervall</button>
       </div>
-      <div data-free ${t.mode === 'interval' ? 'hidden' : ''}>
-        <div class="field"><label for="ct-min">Zieldauer (min, optional)</label><input class="inp" id="ct-min" type="number" inputmode="numeric" value="${t.targetMin || ''}"></div>
+      <div data-time ${t.mode === 'interval' ? 'hidden' : ''}>
+        <div class="mstp-row" style="padding-top:0">
+          <span class="mstp-lbl">Dauer</span>
+          <div class="mstp">
+            <button data-d="-5" aria-label="Weniger">${ic('minus')}</button>
+            <b id="cp-min">${t.min} min</b>
+            <button data-d="5" aria-label="Mehr">${ic('plus')}</button>
+          </div>
+        </div>
       </div>
-      <div data-int ${t.mode === 'free' ? 'hidden' : ''}>
+      <div data-int ${t.mode === 'time' ? 'hidden' : ''}>
         <div class="field-row">
           <div class="field"><label for="ct-w">Belastung (s)</label><input class="inp" id="ct-w" type="number" inputmode="numeric" value="${t.workSec}"></div>
           <div class="field"><label for="ct-r">Pause (s)</label><input class="inp" id="ct-r" type="number" inputmode="numeric" value="${t.restSec}"></div>
@@ -198,37 +251,32 @@ A.cardioEditTpl = id => {
       </div>
       <div class="field"><label for="ct-note">Hinweis (optional)</label><input class="inp" id="ct-note" value="${esc(t.note || '')}" placeholder="z. B. Puls 125–140, 6° Steigung"></div>
       <button class="btn btn-acc full" data-save>${ic('check')} Speichern</button>
-      ${existing ? `<button class="btn btn-danger full mt8" data-del>${ic('trash')} Löschen</button>` : ''}`,
+      ${existing ? `<button class="btn btn-danger full mt8" data-del>${ic('trash')} Aus Plan entfernen</button>` : ''}`,
     onOpen(sheet) {
       const $ = s => sheet.querySelector(s);
-      sheet.querySelectorAll('[data-dev]').forEach(b => b.addEventListener('click', () => {
-        t.device = b.dataset.dev;
-        sheet.querySelectorAll('[data-dev]').forEach(x => x.classList.toggle('on', x === b));
-      }));
       sheet.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => {
         t.mode = b.dataset.mode;
         sheet.querySelectorAll('[data-mode]').forEach(x => x.classList.toggle('on', x === b));
-        $('[data-free]').hidden = t.mode !== 'free';
+        $('[data-time]').hidden = t.mode !== 'time';
         $('[data-int]').hidden = t.mode !== 'interval';
+      }));
+      sheet.querySelectorAll('[data-d]').forEach(b => b.addEventListener('click', () => {
+        t.min = Math.min(240, Math.max(5, t.min + parseInt(b.dataset.d)));
+        $('#cp-min').textContent = t.min + ' min';
       }));
       $('[data-save]').addEventListener('click', () => {
         const int = (sel, def) => { const v = parseInt($(sel).value); return v > 0 ? v : def; };
-        const out = {
-          id: existing ? existing.id : uid(),
-          name: $('#ct-name').value.trim() || dev(t.device).label,
-          device: t.device, mode: t.mode,
-          note: $('#ct-note').value.trim(),
-        };
+        const out = { id: existing ? existing.id : uid(), sport: $('#cp-sport').value, mode: t.mode, note: $('#ct-note').value.trim() };
         if (t.mode === 'interval') Object.assign(out, { workSec: int('#ct-w', 30), restSec: int('#ct-r', 90), rounds: int('#ct-n', 8) });
-        else out.targetMin = int('#ct-min', null);
-        if (existing) S.cardio.templates[S.cardio.templates.indexOf(existing)] = out;
-        else S.cardio.templates.push(out);
+        else out.min = t.min;
+        if (existing) S.cardio.plan[S.cardio.plan.indexOf(existing)] = out;
+        else S.cardio.plan.push(out);
         save(); closeSheet(); render();
       });
       if (existing) $('[data-del]').addEventListener('click', async () => {
         closeSheet();
-        if (!(await confirmSheet('Vorlage löschen?', `„${esc(existing.name)}“ wird entfernt.`))) return;
-        S.cardio.templates = S.cardio.templates.filter(x => x !== existing);
+        if (!(await confirmSheet('Aus Plan entfernen?', `„${itemTitle(existing)}“ wird aus dem Wochenplan entfernt.`, 'Entfernen'))) return;
+        S.cardio.plan = S.cardio.plan.filter(x => x !== existing);
         save(); render();
       });
     },
@@ -240,11 +288,21 @@ let tick = null;
 let wakeLock = null;
 let lastPhase = -1;
 
-A.cardioQuick = deviceId => startSession({ device: deviceId, name: dev(deviceId).label, mode: 'free' });
+A.cardioQuickMin = d => {
+  quickMin = Math.min(240, Math.max(0, quickMin + d));
+  const el = document.getElementById('cq-min');
+  if (el) el.textContent = quickMin ? quickMin + ' min' : 'offen';
+};
 
-A.cardioStartTpl = id => {
-  const t = S.cardio.templates.find(x => x.id === id);
-  if (t) startSession({ ...t, templateId: t.id, name: t.name });
+A.cardioQuick = () => {
+  const sel = document.getElementById('cq-sport');
+  if (sel) quickSport = sel.value;
+  startSession({ sport: quickSport, name: dev(quickSport).label, mode: 'time', min: quickMin || null });
+};
+
+A.cardioStartPlan = id => {
+  const it = S.cardio.plan.find(x => x.id === id);
+  if (it) startSession({ ...it, planId: it.id, name: itemTitle(it) });
 };
 
 A.cardioResume = () => openPlayer();
@@ -252,14 +310,14 @@ A.cardioResume = () => openPlayer();
 function startSession(t) {
   if (S.cardio.session) { openPlayer(); return; }
   S.cardio.session = {
-    device: t.device, name: t.name, templateId: t.templateId || null,
-    mode: t.mode || 'free', targetMin: t.targetMin || null,
+    device: t.sport, name: t.name, planId: t.planId || null,
+    mode: t.mode === 'interval' ? 'interval' : 'free', targetMin: t.mode === 'interval' ? null : (t.min || null),
     workSec: t.workSec, restSec: t.restSec, rounds: t.rounds, note: t.note || '',
     start: Date.now(), pausedAt: null, pausedMs: 0,
   };
   save();
   openPlayer();
-  if (S.cardio.watch.enabled) runShortcut(S.cardio.watch.startName, dev(t.device).label);
+  if (S.cardio.watch.enabled) runShortcut(S.cardio.watch.startName, dev(t.sport).label);
 }
 
 // Kurzbefehl über das URL-Schema der Kurzbefehle-App starten (iOS).
@@ -323,7 +381,7 @@ function renderPlayer() {
   const s = S.cardio.session;
   const el = document.getElementById('cardio-player');
   if (!s) { el.innerHTML = ''; return; }
-  const sub = s.mode === 'interval' ? `${s.rounds} × ${s.workSec} s / ${s.restSec} s` : (s.targetMin ? `Ziel ${s.targetMin} min` : 'Freies Training');
+  const sub = s.mode === 'interval' ? `${s.rounds} × ${s.workSec} s / ${s.restSec} s` : (s.targetMin ? `${s.targetMin} min` : 'Offenes Training');
   el.innerHTML = `
     <div class="player-head">
       <div class="ph-top">
@@ -368,10 +426,10 @@ function updatePlayer() {
     $('cp-chip').textContent = p.kind === 'done' ? 'Fertig' : `Runde ${p.round}/${s.rounds}`;
     $('cp-phase').textContent = p.kind === 'work' ? 'Belastung' : p.kind === 'rest' ? 'Locker' : 'Geschafft';
     $('cp-phase').className = 'cp-phase' + (p.kind === 'work' ? ' on' : '');
-    $('cp-clock').textContent = p.kind === 'done' ? fmtClock(t) : fmtClock(p.left);
+    $('cp-clock').textContent = p.kind === 'done' ? '+' + fmtClock(t - total).replace(/^0(?=\d:)/, '') : fmtClock(p.left);
     const next = p.list[p.index + 1];
     $('cp-sub').textContent = p.kind === 'done'
-      ? 'Alle Runden durch – jetzt beenden'
+      ? 'Alle Runden durch – Extra-Minuten zählen mit'
       : `${next ? `danach ${fmtClock(next.sec)} ${next.kind === 'work' ? 'Belastung' : 'locker'} · ` : 'letzte Runde · '}gesamt ${fmtClock(Math.min(t, total))} / ${fmtClock(total)}`;
     // Rundensegmente: gefüllt = Belastung erledigt
     $('cp-segs').innerHTML = p.list.filter(x => x.kind === 'work').map(w => {
@@ -381,17 +439,22 @@ function updatePlayer() {
       return `<span><i style="width:${(f * 100).toFixed(0)}%"></i></span>`;
     }).join('');
   } else {
-    $('cp-chip').textContent = s.pausedAt ? 'Pausiert' : 'Läuft';
-    $('cp-phase').textContent = s.pausedAt ? 'Pausiert' : 'Dauer';
-    $('cp-phase').className = 'cp-phase' + (s.pausedAt ? '' : ' on');
-    $('cp-clock').textContent = fmtClock(t);
     if (s.targetMin) {
+      // Countdown bis 0, danach als Bonus weiter hochzählen
       const left = s.targetMin * 60 - t;
-      if (left <= 0 && lastPhase !== 1) { if (lastPhase === 0) vibrate([300, 120, 300]); lastPhase = 1; }
+      if (left <= 0 && lastPhase !== 1) { if (lastPhase === 0) vibrate([300, 120, 300, 120, 300]); lastPhase = 1; }
       else if (left > 0) lastPhase = 0;
-      $('cp-sub').textContent = left > 0 ? `noch ${fmtClock(left)} bis ${s.targetMin} min` : `Ziel von ${s.targetMin} min erreicht`;
+      $('cp-chip').textContent = s.pausedAt ? 'Pausiert' : left > 0 ? `Ziel ${s.targetMin} min` : 'Bonus';
+      $('cp-phase').textContent = s.pausedAt ? 'Pausiert' : left > 0 ? 'Noch' : 'Geschafft';
+      $('cp-phase').className = 'cp-phase' + (s.pausedAt ? '' : ' on');
+      $('cp-clock').textContent = left > 0 ? fmtClock(left) : '+' + fmtClock(-left).replace(/^0(?=\d:)/, '');
+      $('cp-sub').textContent = left > 0 ? `${fmtClock(t)} von ${s.targetMin}:00 min` : `${s.targetMin} min geschafft – Extra-Minuten zählen fürs Wochenziel`;
       $('cp-segs').innerHTML = `<span><i style="width:${Math.min(100, t / (s.targetMin * 60) * 100).toFixed(1)}%"></i></span>`;
     } else {
+      $('cp-chip').textContent = s.pausedAt ? 'Pausiert' : 'Läuft';
+      $('cp-phase').textContent = s.pausedAt ? 'Pausiert' : 'Offen';
+      $('cp-phase').className = 'cp-phase' + (s.pausedAt ? '' : ' on');
+      $('cp-clock').textContent = fmtClock(t);
       $('cp-sub').textContent = '';
       $('cp-segs').innerHTML = '';
     }
@@ -417,7 +480,7 @@ A.cardioEnd = async () => {
     if (!(await confirmSheet('Einheit verwerfen?', 'Unter einer Minute – die Einheit wird nicht gespeichert.', 'Verwerfen'))) return;
     S.cardio.session = null; save(); closePlayer(); return;
   }
-  S.cardio.pending = { device: s.device, name: s.name, min: Math.max(1, Math.round(secs / 60)), date: todayISO() };
+  S.cardio.pending = { device: s.device, name: s.name, planId: s.planId || null, min: Math.max(1, Math.round(secs / 60)), date: todayISO() };
   S.cardio.session = null;
   save();
   closePlayer();
@@ -436,9 +499,7 @@ A.cardioLog = manual => {
     title: pending ? 'Einheit speichern' : 'Einheit nachtragen',
     body: `
       ${w.enabled ? `<div class="field-hint" style="margin:0 0 14px">${ic('device_watch')} Puls, kcal &amp; Distanz kannst du von der Uhr oder dem Gerät abschreiben.</div>` : ''}
-      <div class="field"><label>Gerät</label><div class="pills" style="flex-wrap:wrap">
-        ${DEVICES.map(x => `<button class="pill${x.id === d.device ? ' on' : ''}" data-dev="${x.id}">${x.label}</button>`).join('')}
-      </div></div>
+      <div class="field"><label for="cl-sport">Sportart</label>${sportSelect('cl-sport', d.device)}</div>
       <div class="field-row">
         <div class="field"><label for="cl-min">Dauer (min)</label><input class="inp" id="cl-min" type="number" inputmode="numeric" value="${d.min}"></div>
         <div class="field"><label for="cl-km">Distanz (km)</label><input class="inp" id="cl-km" type="text" inputmode="decimal" placeholder="optional"></div>
@@ -456,11 +517,7 @@ A.cardioLog = manual => {
       ${pending ? `<button class="btn btn-ghost full mt8" data-discard>Verwerfen</button>` : ''}`,
     onOpen(sheet) {
       const $ = s => sheet.querySelector(s);
-      let device = d.device, rpe = null;
-      sheet.querySelectorAll('[data-dev]').forEach(b => b.addEventListener('click', () => {
-        device = b.dataset.dev;
-        sheet.querySelectorAll('[data-dev]').forEach(x => x.classList.toggle('on', x === b));
-      }));
+      let rpe = null;
       sheet.querySelectorAll('[data-rpe]').forEach(b => b.addEventListener('click', () => {
         rpe = rpe === +b.dataset.rpe ? null : +b.dataset.rpe;
         sheet.querySelectorAll('[data-rpe]').forEach(x => x.classList.toggle('on', +x.dataset.rpe === rpe));
@@ -473,8 +530,9 @@ A.cardioLog = manual => {
         const log = {
           id: uid(),
           date: $('#cl-date').value || todayISO(),
-          device,
-          name: pending ? pending.name : dev(device).label,
+          device: $('#cl-sport').value,
+          name: pending ? pending.name : dev($('#cl-sport').value).label,
+          planId: pending ? pending.planId || null : null,
           min, km: num('#cl-km'), hr: num('#cl-hr') && Math.round(num('#cl-hr')),
           kcal: num('#cl-kcal') && Math.round(num('#cl-kcal')), rpe,
         };
@@ -527,7 +585,8 @@ A.cardioWatchSetup = () => {
       <div class="slbl">Start-Kurzbefehl</div>
       <div class="guide">
         ${steps('Training starten')}
-        <p style="margin-bottom:8px">Die App übergibt das Gerät als Text (<b>Laufband</b>, <b>Ergometer</b>, <b>Crosstrainer</b>, <b>Rudern</b>, <b>Stepper</b>, <b>Draußen</b>). Für verschiedene Trainingsarten je Gerät einen Block <b>Wenn</b> · Kurzbefehleingabe · ist · <i>Gerät</i> anlegen.</p>
+        <p style="margin-bottom:8px">Die App übergibt die Sportart als Text. Für jede Sportart einen Block <b>Wenn</b> · Kurzbefehleingabe · ist · <i>Text</i> anlegen und darin die passende Trainingsart starten:</p>
+        <div class="map-list">${SPORTS.map(x => `<span><b>${x.label}</b></span><span>→ ${x.watch}</span>`).join('')}</div>
         <input class="inp" id="cw-start" value="${esc(w.startName)}" aria-label="Name des Start-Kurzbefehls">
         <button class="btn sm full mt8" data-test="start">${ic('player_play')} Start testen</button>
       </div>
